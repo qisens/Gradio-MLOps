@@ -1,0 +1,7 @@
+path: /home/gpuadmin/seongje_gradio2/test_yolo_project/datasets/260104_An_oilwater_v1
+train: images/train
+val: images/val
+
+names:
+  0: oil
+  1: water

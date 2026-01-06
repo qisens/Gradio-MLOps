@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+.vscode/
+
+# Gradio / temp
+.gradio/
+*.tmp
+
+# Logs
+*.log
+
+# Env / secrets
+.env
+.env.*
+
+# Model artifacts
+runs/
+weights/
+*.pt
+*.onnx
+*.engine
+
+# Results (보통 산출물은 제외)
+inf_results/
+
+# Temp generated
+temp_generated.json
+
+# OS
+.DS_Store
