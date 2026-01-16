@@ -15,15 +15,65 @@ def build_tab2_dataset():
     with gr.Tab("2. Dataset 설정"):
         final_out_root_state = gr.State("")  # 실제 저장 루트(out_root/dataset_name)
 
+        with gr.Accordion(label="로컬 업로드", open=False):
+            gr.Markdown("### ⬆️ 로컬 업로드 → test_yolo_project/datasets_for_labeling/<폴더명>/images,labels 저장")
+
+            labeling_dataset_name = gr.Textbox(
+                label="업로드 저장 폴더명 (datasets_for_labeling 하위 생성)",
+                placeholder="예) labeling_20251231_v1",
+            )
+
+            local_images = gr.File(
+                label="로컬 이미지 업로드(여러개)",
+                file_count="multiple",
+                file_types=["image"],
+            )
+            local_txts = gr.File(
+                label="로컬 txt 업로드(여러개)",
+                file_count="multiple",
+                file_types=[".txt"],
+            )
+
+            upload_btn = gr.Button("⬆️ 서버로 업로드 저장")
+            upload_log = gr.Textbox(label="업로드 로그", lines=8)
+            upload_path_view = gr.Textbox(label="생성된 dataset_root", interactive=False)
+
+            def _upload_to_labeling_root(name, imgs, txts):
+                log, info = upload_files_to_labeling_dataset(
+                    dataset_name=name,
+                    img_files=imgs,
+                    txt_files=txts,
+                    overwrite=True,
+                )
+                return log, (info.get("dataset_root", "") if info else "")
+
+            upload_btn.click(
+                fn=_upload_to_labeling_root,
+                inputs=[labeling_dataset_name, local_images, local_txts],
+                outputs=[upload_log, upload_path_view],
+            )
+
         with gr.Row():
             with gr.Column(scale=2):
-                use_existing = gr.Radio(["Yes", "No"], value="Yes", label="기존 데이터셋 활용 여부 체크")
+                with gr.Column():
+                    with gr.Column():
+                        use_existing = gr.Radio(
+                            ["Yes", "No"],
+                            value="Yes",
+                            label="기존 데이터셋 활용 여부 체크",
+                        )
 
-                existing_dataset_dir = gr.FileExplorer(
-                    label="기존 데이터셋 경로 선택 (폴더)",
-                    root_dir=PROJECT_ROOT,
-                    file_count="single",
-                )
+                        existing_hint = gr.Markdown(
+                            "기존 데이터셋을 사용하려면 기존데이터셋 활용여부에서 `Yes`를 선택하세요.",
+                            visible=False
+                        )
+
+                        existing_dataset_dir = gr.FileExplorer(
+                            label="기존 데이터셋 경로 선택 (폴더)",
+                            root_dir=PROJECT_ROOT,
+                            file_count="single",
+                            visible=True
+                        )
 
                 new_dataset_dir = gr.FileExplorer(
                     label="이번 데이터셋 경로 선택 (폴더) - (images/, labels/ 한 레벨)",
@@ -47,7 +97,12 @@ def build_tab2_dataset():
 
 
             with gr.Column(scale=3):
-                log_box = gr.Textbox(label="검증/실행 로그", lines=10)
+                log_box = gr.Textbox(
+                    label="검증 / 실행 로그",
+                    lines=10,
+                    interactive=False,
+                    elem_id="log_box"
+                )
 
                 existing_stats_df = gr.Dataframe(label="기존 데이터셋 통계", interactive=False)
 
@@ -57,10 +112,11 @@ def build_tab2_dataset():
                     value=[],
                 )
 
-                out_root_view = gr.Textbox(
-                    label="최종 저장 루트(out_root/dataset_name)",
-                    interactive=False,
-                )
+                with gr.Group():
+                    gr.Markdown("### [최종 저장 경로]")
+                    out_root_view = gr.Markdown(
+                        value="왼쪽에서 저장 경로를 설정해 주세요."
+                    )
 
                 split_btn = gr.Button("✅ 체크 기준으로 train/val 분할 복사 실행")
 
@@ -68,13 +124,21 @@ def build_tab2_dataset():
 
         # 1) 기존 데이터셋 사용 여부에 따라 existing 경로 활성/비활성
         def _toggle_existing(v):
-            enable = (v == "Yes")
-            return gr.update(interactive=enable), f"[INFO] use_existing={v}"
+            if v == "Yes":
+                return (
+                    gr.update(visible=False),  # hint 숨김
+                    gr.update(visible=True),  # explorer 표시
+                )
+            else:
+                return (
+                    gr.update(visible=True),  # hint 표시
+                    gr.update(visible=False),  # explorer 숨김
+                )
 
         use_existing.change(
             _toggle_existing,
-            inputs=[use_existing],
-            outputs=[existing_dataset_dir, log_box]
+            inputs=use_existing,
+            outputs=[existing_hint, existing_dataset_dir]
         )
 
         # 2) 기존 데이터셋 경로 설정되면 통계표 로드
@@ -143,40 +207,4 @@ def build_tab2_dataset():
             outputs=[log_box, split_result_df]
         )
 
-        with gr.Group():
-            gr.Markdown("### ⬆️ 로컬 업로드 → test_yolo_project/datasets_for_labeling/<폴더명>/images,labels 저장")
 
-            labeling_dataset_name = gr.Textbox(
-                label="업로드 저장 폴더명 (datasets_for_labeling 하위 생성)",
-                placeholder="예) labeling_20251231_v1",
-            )
-
-            local_images = gr.File(
-                label="로컬 이미지 업로드(여러개)",
-                file_count="multiple",
-                file_types=["image"],
-            )
-            local_txts = gr.File(
-                label="로컬 txt 업로드(여러개)",
-                file_count="multiple",
-                file_types=[".txt"],
-            )
-
-            upload_btn = gr.Button("⬆️ 서버로 업로드 저장")
-            upload_log = gr.Textbox(label="업로드 로그", lines=8)
-            upload_path_view = gr.Textbox(label="생성된 dataset_root", interactive=False)
-
-            def _upload_to_labeling_root(name, imgs, txts):
-                log, info = upload_files_to_labeling_dataset(
-                    dataset_name=name,
-                    img_files=imgs,
-                    txt_files=txts,
-                    overwrite=True,
-                )
-                return log, (info.get("dataset_root", "") if info else "")
-
-            upload_btn.click(
-                fn=_upload_to_labeling_root,
-                inputs=[labeling_dataset_name, local_images, local_txts],
-                outputs=[upload_log, upload_path_view],
-            )

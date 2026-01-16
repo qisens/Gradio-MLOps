@@ -126,7 +126,34 @@ class YoloTrainer:
 
             self._proc = subprocess.Popen(cmd, cwd=self.project_root)
 
+            # 학습 종료 감지 스레드 추가
+            threading.Thread(
+                target=self._wait_for_finish,
+                daemon=True
+            ).start()
+
         return f"학습 시작: {' '.join(cmd)}"
+
+    def _wait_for_finish(self):
+        """
+            YOLO 학습 subprocess가 종료될 때까지 대기하고
+            종료되면 _proc를 정리한다.
+
+            이 함수로 [자연 종료 / 에러 종료 / epoch 끝나고 종료] 전부 감지 가능
+        """
+        proc = None
+        with self._lock:
+            proc = self._proc
+
+        if proc is None:
+            return
+
+        proc.wait()
+
+        with self._lock:
+            # 다른 곳에서 stop_train으로 이미 정리했을 수도 있음
+            if self._proc is proc:
+                self._proc = None
 
     def stop_train(self):
         """

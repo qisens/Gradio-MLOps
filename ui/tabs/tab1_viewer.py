@@ -165,7 +165,47 @@ def _find_txt_for_image(st: SourceState, image_path: str) -> str:
     return ""
 
 
-def on_set_server(server_img_sel: str, server_txt_sel: str, prev_state: Dict[str, Any]):
+def _render_current_with_info(st, info: str):
+    """
+        : 경로 설정 버튼 클릭 후 서버/로컬 공통 실행 함수
+        현재 state 기준으로
+        - 원본 이미지
+        - 추론 결과(윤곽선)
+        - 파일명
+        - info 메시지
+        를 모두 생성
+    """
+    cur, st = _resolve_current_image(st)
+
+    orig = infer = None
+    cur_name = txt_name = ""
+
+    if cur:
+        # 원본
+        bgr = cv2.imread(cur)
+        orig = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB) if bgr is not None else None
+        cur_name = os.path.basename(cur)
+
+        # 추론 결과
+        txt_path = _find_txt_for_image(st, cur)
+        if txt_path:
+            infer = _draw_outlines_only(
+                cur,
+                txt_path,
+                color_bgr=(0, 255, 0),
+                thickness=2,
+            )
+
+    return (
+        _state_to_dict(st),
+        orig,
+        infer,
+        cur_name,
+        info,
+    )
+
+
+def on_set_server(server_img_sel: str, server_txt_sel: str, prev_state):
     """
         [서버로 설정] 버튼 클릭 시 호출됨.
 
@@ -195,20 +235,13 @@ def on_set_server(server_img_sel: str, server_txt_sel: str, prev_state: Dict[str
     st.server_images = imgs
     st.idx = 0
 
-    cur, st = _resolve_current_image(st)
-    preview = None
-    if cur:
-        # 원본 미리보기 (RGB numpy)
-        bgr = cv2.imread(cur)
-        preview = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB) if bgr is not None else None
-
     info = f"[SERVER] images={len(imgs)} | img_dir={img_dir} | txt_dir={txt_dir}"
-    filename = os.path.basename(cur) if cur else ""
 
-    return _state_to_dict(st), preview, None, filename, info
+    return _render_current_with_info(st, info)
 
 
-def on_set_local(local_img_files, local_txt_files, prev_state: Dict[str, Any]):
+def on_set_local(local_img_files, local_txt_files, prev_state):
+    st = _dict_to_state(prev_state)
     """
         [로컬로 설정] 버튼 클릭 시 호출됨.
 
@@ -223,37 +256,47 @@ def on_set_local(local_img_files, local_txt_files, prev_state: Dict[str, Any]):
     """
     st = _dict_to_state(prev_state)
 
-    img_paths = []
-    if local_img_files:
-        for f in local_img_files:
-            p = getattr(f, "name", None)
-            if p and _is_image(p):
-                img_paths.append(p)
-    img_paths = sorted(img_paths, key=lambda p: os.path.basename(p))
+    img_paths = sorted(
+        [f.name for f in local_img_files or [] if _is_image(getattr(f, "name", ""))],
+        key=os.path.basename,
+    )
 
-    txt_paths = []
-    if local_txt_files:
-        for f in local_txt_files:
-            p = getattr(f, "name", None)
-            if p and p.lower().endswith(".txt"):
-                txt_paths.append(p)
-    txt_paths = sorted(txt_paths, key=lambda p: os.path.basename(p))
+    txt_paths = sorted(
+        [f.name for f in local_txt_files or [] if getattr(f, "name", "").lower().endswith(".txt")],
+        key=os.path.basename,
+    )
 
     st.mode = "local"
     st.local_images = img_paths
     st.local_txts = txt_paths
     st.idx = 0
 
+    info = f"[LOCAL] images={len(img_paths)} | txts={len(txt_paths)}"
+
+    return _render_current_with_info(st, info)
+
+def _render_current(st):
+    """
+        [이전] / [다음] 버튼 클릭 시 공통 적용 함수
+    """
     cur, st = _resolve_current_image(st)
-    preview = None
+
+    orig = infer = None
+    cur_name = txt_name = ""
+
     if cur:
         bgr = cv2.imread(cur)
-        preview = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB) if bgr is not None else None
+        orig = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB) if bgr is not None else None
+        cur_name = os.path.basename(cur)
 
-    info = f"[LOCAL] images={len(img_paths)} | txts={len(txt_paths)}"
-    filename = os.path.basename(cur) if cur else ""
+        txt_path = _find_txt_for_image(st, cur)
+        if txt_path:
+            infer = _draw_outlines_only(cur, txt_path)
+            txt_name = os.path.basename(txt_path)
+        else:
+            txt_name = "(txt 없음)"
 
-    return _state_to_dict(st), preview, None, filename, info
+    return _state_to_dict(st), orig, infer, cur_name, txt_name
 
 
 def on_prev(prev_state: Dict[str, Any]):
@@ -266,16 +309,8 @@ def on_prev(prev_state: Dict[str, Any]):
         - 원본 이미지 미리보기 갱신
     """
     st = _dict_to_state(prev_state)
-    st.idx = int(st.idx) - 1
-    cur, st = _resolve_current_image(st)
-
-    preview = None
-    if cur:
-        bgr = cv2.imread(cur)
-        preview = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB) if bgr is not None else None
-
-    filename = os.path.basename(cur) if cur else ""
-    return _state_to_dict(st), preview, None, filename
+    st.idx -= 1
+    return _render_current(st)
 
 
 def on_next(prev_state: Dict[str, Any]):
@@ -288,16 +323,8 @@ def on_next(prev_state: Dict[str, Any]):
         - 원본 이미지 미리보기 갱신
     """
     st = _dict_to_state(prev_state)
-    st.idx = int(st.idx) + 1
-    cur, st = _resolve_current_image(st)
-
-    preview = None
-    if cur:
-        bgr = cv2.imread(cur)
-        preview = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB) if bgr is not None else None
-
-    filename = os.path.basename(cur) if cur else ""
-    return _state_to_dict(st), preview, None, filename
+    st.idx += 1
+    return _render_current(st)
 
 
 def on_load_infer(prev_state: Dict[str, Any]):
@@ -338,58 +365,86 @@ def build_tab1_viewer():
         # 상태
         state = gr.State(value=_state_to_dict(SourceState(mode="server", server_images=[], local_images=[], local_txts=[])))
 
-        with gr.Accordion("서버 설정", open=True):
-            with gr.Row():
-                with gr.Column(scale=1):
-                    server_img_sel = gr.FileExplorer(
-                        label="1) 서버 원본 이미지 경로 탐색(폴더 또는 폴더 안 파일 선택)",
-                        root_dir=EXPLORER_ROOT,
-                        file_count="single",
-                    )
-                with gr.Column(scale=1):
-                    server_txt_sel = gr.FileExplorer(
-                        label="2) 서버 추론결과 txt 경로 탐색(폴더 또는 폴더 안 파일 선택)",
-                        root_dir=EXPLORER_ROOT,
-                        file_count="single",
-                    )
-                with gr.Column(scale=0):
-                    btn_set_server = gr.Button("3) 서버로 설정", variant="primary")
+        with gr.Tabs():
+            # =========================
+            # 서버 설정 탭
+            # =========================
+            with gr.Tab("서버에서 경로 설정"):
+                # 입력 영역 (2컬럼)
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        server_img_sel = gr.FileExplorer(
+                            label="1) 서버 원본 이미지 경로 탐색 (폴더 또는 파일)",
+                            root_dir=EXPLORER_ROOT,
+                            file_count="single",
+                        )
 
-        with gr.Accordion("로컬 설정", open=False):
-            with gr.Row():
-                with gr.Column(scale=1):
-                    local_img_files = gr.File(
-                        label="4) 로컬 원본 이미지 선택(여러개)",
-                        file_count="multiple",
-                        file_types=["image"],
-                    )
-                with gr.Column(scale=1):
-                    local_txt_files = gr.File(
-                        label="5) 로컬 추론결과 txt 선택(여러개)",
-                        file_count="multiple",
-                        file_types=[".txt"],
-                    )
-                with gr.Column(scale=0):
-                    btn_set_local = gr.Button("6) 로컬로 설정", variant="primary")
+                    with gr.Column(scale=1):
+                        server_txt_sel = gr.FileExplorer(
+                            label="2) 서버 추론결과 txt 경로 탐색 (폴더 또는 파일)",
+                            root_dir=EXPLORER_ROOT,
+                            file_count="single",
+                        )
 
-        info_box = gr.Textbox(label="설정 상태", lines=2, interactive=False)
+                # 버튼 영역 (2컬럼 합침)
+                with gr.Row():
+                    btn_set_server = gr.Button(
+                        "3) 경로로 설정",
+                        variant="primary",
+                        scale=1,
+                    )
+
+            # =========================
+            # 로컬 설정 탭
+            # =========================
+            with gr.Tab("로컬에서 경로 설정"):
+                # 입력 영역 (2컬럼)
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        local_img_files = gr.File(
+                            label="1) 로컬 원본 이미지 선택 (여러 개)",
+                            file_count="multiple",
+                            file_types=["image"],
+                        )
+
+                    with gr.Column(scale=1):
+                        local_txt_files = gr.File(
+                            label="2) 로컬 추론결과 txt 선택 (여러 개)",
+                            file_count="multiple",
+                            file_types=[".txt"],
+                        )
+
+                # 버튼 영역 (2컬럼 합침)
+                with gr.Row():
+                    btn_set_local = gr.Button(
+                        "3) 경로로 설정",
+                        variant="primary",
+                        scale=1,
+                    )
+
+        # gr.Group()의 배경이 회색임. 그래서 더 로그같이 보이는거.
+        with gr.Group():
+            gr.Markdown("### [경로 설정 상태 로그]")
+            info_box = gr.Markdown(
+                value="서버 또는 로컬에서 경로를 선택해 주세요."
+            )
 
         with gr.Row():
             with gr.Column(scale=1):
-                gr.Markdown("### 7) 원본 이미지")
+                gr.Markdown("### 4. 원본 이미지")
                 orig_img = gr.Image(type="numpy", label="원본이미지")
                 cur_name = gr.Textbox(label="현재 파일명", interactive=False)
 
                 with gr.Row():
-                    btn_prev = gr.Button("7-1) 이전")
-                    btn_next = gr.Button("7-2) 다음")
+                    btn_prev = gr.Button("4-1) 이전")
+                    btn_next = gr.Button("4-2) 다음")
 
             with gr.Column(scale=1):
-                gr.Markdown("### 8) 추론 결과(윤곽선만)")
+                gr.Markdown("### 5. 추론 결과(윤곽선만)")
                 infer_img = gr.Image(type="numpy", label="추론결과(윤곽선)")
                 txt_name = gr.Textbox(label="사용한 txt", interactive=False)
 
-                btn_load = gr.Button("8-1) 추론결과 불러오기", variant="primary")
+                btn_load = gr.Button("5) 추론결과 다시 불러오기", variant="primary")
 
         # --- events ---
         btn_set_server.click(
@@ -407,12 +462,12 @@ def build_tab1_viewer():
         btn_prev.click(
             fn=on_prev,
             inputs=[state],
-            outputs=[state, orig_img, infer_img, cur_name],
+            outputs=[state, orig_img, infer_img, cur_name, txt_name]
         )
         btn_next.click(
             fn=on_next,
             inputs=[state],
-            outputs=[state, orig_img, infer_img, cur_name],
+            outputs=[state, orig_img, infer_img, cur_name, txt_name]
         )
 
         btn_load.click(

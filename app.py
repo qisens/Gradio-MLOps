@@ -18,7 +18,14 @@ def create_demo():
 
     trainer = YoloTrainer(yolo_cli=YOLO_CLI, project_root=PROJECT_ROOT)
 
-    with gr.Blocks() as demo:
+    with gr.Blocks(css="""
+    #log_box textarea {
+        background-color: #f3f4f6;
+        color: #111827;
+        font-family: monospace;
+        font-size: 13px;
+    }
+    """) as demo:
         with gr.Tabs():
             build_tab1_viewer()
             build_tab2_dataset()
@@ -35,6 +42,3 @@ if __name__ == "__main__":
     #demo = create_demo()
     # demo.launch(js=ALL_JS, share=True)
     demo.launch(js=ALL_JS, server_port=7861)
-    #demo.launch(js=ALL_JS)
-    #demo.launch(share=True)
-    #demo.launch()
