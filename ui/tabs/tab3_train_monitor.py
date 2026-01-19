@@ -23,20 +23,21 @@ def build_tab3_train_monitor(trainer):
                         with gr.Column(scale=2):
                             with gr.Tab(label="새로운 training 시작"):
                                 gr.Markdown("### 학습 실행")
-                                task = gr.Radio(["detect", "segment"], value="segment", label="YOLO Task")
+                                task = gr.Radio(["segment", "detect"], value="segment", label="YOLO Task")
 
                                 data_yaml_file = gr.File(label="data.yaml 업로드", file_types=[".yaml", ".yml"], file_count="single")
                                 data_yaml_path = gr.Textbox(label="서버 저장 경로 (data.yaml)", interactive=False)
 
-                                model_pt_file = gr.File(label="모델(.pt) 업로드", file_types=[".pt"], file_count="single")
-                                model_pt_path = gr.Textbox(label="서버 저장 경로 (model.pt)", interactive=False)
+                                with gr.Accordion(label="모델 선택해서 training", open=False):
+                                    model_pt_file = gr.File(label="모델(.pt) 업로드", file_types=[".pt"], file_count="single")
+                                    model_pt_path = gr.Textbox(label="서버 저장 경로 (model.pt)", interactive=False)
 
                                 data_yaml_file.change(fn=lambda f: save_uploaded_file(f, UPLOAD_DATA_DIR), inputs=[data_yaml_file], outputs=[data_yaml_path])
                                 model_pt_file.change(fn=lambda f: save_uploaded_file(f, UPLOAD_MODEL_DIR), inputs=[model_pt_file], outputs=[model_pt_path])
 
                                 with gr.Row():
                                     monitor_imgsz = gr.Slider(label="imgsz", minimum=256, maximum=2048, step=64, value=640)
-                                    monitor_epochs = gr.Slider(label="epochs", minimum=1, maximum=500, step=1, value=30)
+                                    monitor_epochs = gr.Slider(label="epochs", minimum=1, maximum=500, step=1, value=11)
                                 with gr.Row():
                                     monitor_batch = gr.Slider(label="batch", minimum=1, maximum=128, step=1, value=16)
                                     monitor_lr0 = gr.Number(label="lr0", value=0.001)
@@ -44,27 +45,24 @@ def build_tab3_train_monitor(trainer):
                                 with gr.Row():
                                     btn_start_train = gr.Button("학습 시작 (CLI)", variant="primary")
                                     btn_stop_train = gr.Button("학습 강제 종료", variant="stop")
-                                    refresh_sec = gr.Slider(label="갱신 주기(초)", minimum=1, maximum=10, step=1, value=2)
+                                    # refresh_sec = gr.Slider(label="갱신 주기(초)", minimum=1, maximum=10, step=1, value=2)
                                 train_status = gr.Textbox(label="상태", interactive=False)
 
-                            with gr.Tab(label="기존 training 불러오기"):
-                                gr.Markdown("### 모니터링 소스 (Primary)")
+                            with gr.Tab(label="기존 training 불러오기, 비교하기"):
+                                gr.Markdown("### 1. 최근 트레이닝 모니터링 소스 (Primary)")
                                 results_csv_path = gr.Textbox(label="results.csv 경로 (비우면 최신 자동)", value="")
                                 results_csv_file = gr.File(label="탐색기에서 results.csv 선택", file_types=[".csv"], file_count="single")
 
-                        with gr.Column(scale=3):
-                            with gr.Accordion(label="이전 runs overlay", open=False):
-                                gr.Markdown("### 이전 runs 선택 (Compare)")
-                                compare_enabled = gr.Checkbox(value=True, label="이전 run과 비교(오버레이)")
-                                btn_refresh_runs = gr.Button("runs 목록 갱신")
-                                runs_dropdown = gr.Dropdown(label="비교 대상 run 선택", value=None, choices=[], interactive=True)
+                                gr.Markdown("### 2. 이전 runs 선택 (Compare)")
+                                runs_dropdown = gr.Dropdown(label="비교 대상 run 선택", value=None, choices=[],
+                                                            interactive=True)
                                 runs_map_state = gr.State(value={})
-                                prev_results_csv_path = gr.Textbox(label="(Compare) 선택된 results.csv 경로", interactive=False,
-                                                                   value="")
+                                prev_results_csv_path = gr.Textbox(label="(Compare) 선택된 results.csv 경로",
+                                                                   interactive=False,
+                                                                           value="")
+                                btn_refresh_runs = gr.Button("runs 목록 갱신")
 
-                            gr.Markdown("### 실시간 지표 (6개씩 묶어서)")
-                            view_mode = gr.Radio(["metrics", "loss"], value="metrics", label="표출 그룹")
-
+                        with gr.Column(scale=3):
                             with gr.Row():
                                 btn_prev = gr.Button("◀ 이전")
                                 page_state = gr.State(1)
@@ -77,7 +75,28 @@ def build_tab3_train_monitor(trainer):
                                     for _ in range(3):
                                         plot6.append(gr.Plot(label=""))
 
-                            last_update = gr.Markdown("트레이닝을 시작하면 로그가 표시됩니다.")
+                            # last_update = gr.Markdown("트레이닝을 시작하면 로그가 표시됩니다.")
+                            # train_log = gr.Textbox(
+                            #     label="학습 로그",
+                            #     lines=20,
+                            #     interactive=False,
+                            #     autoscroll=True
+                            # )
+                            log_box = gr.HTML(
+                                value="""
+                                <div id="logbox"
+                                     style="
+                                        height: 400px;
+                                        overflow-y: auto;
+                                        white-space: pre-wrap;
+                                        font-family: monospace;
+                                        background: #f3f4f6;
+                                        color: #111827;
+                                        padding: 8px;
+                                     ">
+                                </div>
+                                """
+                            )
 
 
                 with gr.Tab(label="best 모델 평가"):
@@ -122,41 +141,51 @@ def build_tab3_train_monitor(trainer):
         btn_prev.click(fn=prev_page, inputs=[page_state], outputs=[page_state])
         btn_next.click(
             fn=lambda p, m: next_page(p, METRIC_COLUMNS if m == "metrics" else LOSS_COLUMNS),
-            inputs=[page_state, view_mode],
+            inputs=[page_state],
             outputs=[page_state],
         )
         page_state.change(fn=lambda p: f"페이지: {int(p)}", inputs=[page_state], outputs=[page_view])
 
-        def start_train_with_timer(t, dy, mp, isz, ep, ba, lr0):
-            msg = trainer.start_train(t, dy, mp, isz, ep, ba, lr0, device_str="0")
-            return msg, gr.update(active=True)
+        # def start_train_with_timer(t, dy, mp, isz, ep, ba, lr0):
+        #     msg = trainer.start_train(t, dy, mp, isz, ep, ba, lr0, device_str="0")
+        #     return msg, gr.update(active=True)
+        #
+        # btn_start_train.click(
+        #     fn=start_train_with_timer,
+        #     inputs=[task, data_yaml_path, model_pt_path, monitor_imgsz, monitor_epochs, monitor_batch, monitor_lr0],
+        #     outputs=[train_status, timer],
+        # )
+        #
+        # def refresh_if_training(primary_csv, rs, p, m, comp_csv, comp_on):
+        #     if not trainer.is_running():
+        #         return (
+        #             *[gr.update()] * 6,  # plot6
+        #             "학습 종료됨",  # last_update
+        #             gr.update(active=False),  # ⬅ Timer OFF
+        #             p
+        #         )
+        #
+        #     return refresh_6plots_compare(
+        #         primary_csv, rs, int(p), m,
+        #         RUNS_DIR, METRIC_COLUMNS, LOSS_COLUMNS,
+        #         compare_csv_path=comp_csv,
+        #         compare_enabled=comp_on
+        #     )
+        #
+        # timer.tick(
+        #     fn=refresh_if_training,
+        #     inputs=[results_csv_path, refresh_sec, page_state, view_mode, prev_results_csv_path, compare_enabled],
+        #     outputs=[*plot6, last_update, timer, page_state],
+        # )
 
         btn_start_train.click(
-            fn=start_train_with_timer,
-            inputs=[task, data_yaml_path, model_pt_path, monitor_imgsz, monitor_epochs, monitor_batch, monitor_lr0],
-            outputs=[train_status, timer],
-        )
-
-        def refresh_if_training(primary_csv, rs, p, m, comp_csv, comp_on):
-            if not trainer.is_running():
-                return (
-                    *[gr.update()] * 6,  # plot6
-                    "학습 종료됨",  # last_update
-                    gr.update(active=False),  # ⬅ Timer OFF
-                    p
-                )
-
-            return refresh_6plots_compare(
-                primary_csv, rs, int(p), m,
-                RUNS_DIR, METRIC_COLUMNS, LOSS_COLUMNS,
-                compare_csv_path=comp_csv,
-                compare_enabled=comp_on
-            )
-
-        timer.tick(
-            fn=refresh_if_training,
-            inputs=[results_csv_path, refresh_sec, page_state, view_mode, prev_results_csv_path, compare_enabled],
-            outputs=[*plot6, last_update, timer, page_state],
+            fn=trainer.start_train_stream,
+            inputs=[
+                task, data_yaml_path, model_pt_path,
+                monitor_imgsz, monitor_epochs,
+                monitor_batch, monitor_lr0
+            ],
+            outputs=[log_box],
         )
 
         def stop_train_and_timer():

@@ -3,6 +3,11 @@ import threading
 import subprocess
 from core.epoch_eval import run_epoch_reports_in_weights_dir
 
+import re
+ANSI_ESCAPE = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
+def strip_ansi(s: str) -> str:
+    return ANSI_ESCAPE.sub("", s)
+
 def normalize_path_from_explorer(val) -> str:
     """
     [경로 정규화 유틸]
@@ -66,6 +71,29 @@ class YoloTrainer:
         self._proc = None
         self._lock = threading.Lock()
         self._epoch_eval_done_for = set()
+
+    def update_log(self, log_text):
+        return f"""
+        <div id="logbox"
+             style="
+                height: 400px;
+                overflow-y: auto;
+                white-space: pre-wrap;
+                font-family: monospace;
+                background: #f3f4f6;
+                color: #111827;
+                padding: 8px;
+             ">
+        {log_text}
+        </div>
+
+        <script>
+            const box = document.getElementById("logbox");
+            if (box) {{
+                box.scrollTop = box.scrollHeight;
+            }}
+        </script>
+        """
 
     def start_train(self, task, data_yaml, model_pt, imgsz, epochs, batch, lr0, device_str="0,1,2,3"):
         """
@@ -133,6 +161,90 @@ class YoloTrainer:
             ).start()
 
         return f"학습 시작: {' '.join(cmd)}"
+
+    def start_train_stream(
+            self,
+            task, data_yaml, model_pt,
+            imgsz, epochs, batch, lr0,
+            device_str="0"
+    ):
+        with self._lock:
+            if self._proc is not None and self._proc.poll() is None:
+                yield "이미 학습이 실행 중입니다."
+                return
+
+            def norm(p: str) -> str:
+                return p if os.path.isabs(p) else os.path.join(self.project_root, p)
+
+            data_abs = norm(data_yaml)
+            model_arg = model_pt.strip() if model_pt else "yolov8n-seg.pt"
+
+            cmd = [
+                self.yolo_cli,
+                task, "train",
+                f"data={data_abs}",
+                f"model={model_arg}",
+                f"imgsz={int(imgsz)}",
+                f"epochs={int(epochs)}",
+                f"batch={int(batch)}",
+                f"lr0={lr0}",
+                f"device={device_str}",
+                f"save_period=10",
+                f"project={os.path.join(self.project_root, 'runs', task)}",
+                f"name=demo_exp",
+            ]
+
+            yield f"[INFO] 학습 시작\n{' '.join(cmd)}\n"
+
+            self._proc = subprocess.Popen(
+                cmd,
+                cwd=self.project_root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+            )
+
+        log_buf = []
+
+        try:
+            for raw_line in self._proc.stdout:
+                line = raw_line.rstrip("\n")
+
+                # 1) ANSI escape 제거
+                line = strip_ansi(line)
+                # 2) tqdm / progress bar 줄 제거
+                # if "640:" in line or "it/s" in line:
+                #     continue
+                # # 3) 빈 줄 제거 (선택)
+                # if not line.strip():
+                #     continue
+
+                log_buf.append(line)
+
+                # 로그가 너무 커지는 것 방지 (최근 N줄만 유지)
+                if len(log_buf) > 500:
+                    log_buf = log_buf[-500:]
+
+                # 🔥 여기서 yield → Gradio Textbox 실시간 갱신
+                # yield "\n".join(log_buf)
+                yield self.update_log("\n".join(log_buf))
+
+            rc = self._proc.wait()
+            log_buf.append(f"[INFO] 학습 종료 (return code={rc})")
+
+        except Exception as e:
+            # yield "\n".join(log_buf) + f"\n[ERROR] 예외 발생: {e}"
+            yield self.update_log("\n".join(log_buf) + f"\n[ERROR] 예외 발생: {e}")
+
+
+        finally:
+            with self._lock:
+                self._proc = None
+
+            # ✅ 마지막에 반드시 전체 로그 yield
+            # yield "\n".join(log_buf)
+            yield self.update_log("\n".join(log_buf))
 
     def _wait_for_finish(self):
         """
