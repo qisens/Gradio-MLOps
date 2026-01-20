@@ -145,13 +145,15 @@ class TrainResultsPlotter:
         except Exception:
             return None
 
-    def _cols_for_mode(self, mode: str) -> List[str]:
-        """
-            [모드별 컬럼 선택]
-            mode == "metrics" -> metric_cols
-            그 외 -> loss_cols
-        """
-        return self.metric_cols if mode == "metrics" else self.loss_cols
+    def _cols_for_mode(self, mode):
+        if mode == "all":
+            return self.metric_cols + self.loss_cols
+        elif mode == "metrics":
+            return self.metric_cols
+        elif mode == "loss":
+            return self.loss_cols
+        else:
+            return self.metric_cols + self.loss_cols
 
     def resolve_primary_csv(self, csv_path: str) -> str:
         """
@@ -282,14 +284,13 @@ class TrainResultsPlotter:
     # -----------------------
     # main refresh API
     # -----------------------
-    def refresh_6plots_compare(
-        self,
-        csv_path: str,
-        refresh_s: float,
-        page_now: int,
-        mode: str,
-        compare_csv_path: str = "",
-        compare_enabled: bool = True,
+    def refresh_6plots_compare_manual(
+         self,
+         csv_path: str,
+         page_now: int,
+         mode: str,
+         compare_csv_path: str = "",
+         compare_enabled: bool = False,
     ):
         """
             [UI timer.tick 메인 엔트리포인트]
@@ -308,11 +309,12 @@ class TrainResultsPlotter:
             Returns:
                 (*figs(6), msg, timer_update, page_now)
         """
-        timer_update = gr.update(value=float(refresh_s))
+        # timer_update = gr.update(value=float(refresh_s))
 
         # paths
         primary_path = self.resolve_primary_csv(csv_path)
-        comp_path = self.resolve_compare_csv(compare_csv_path, compare_enabled)
+        # comp_path = self.resolve_compare_csv(compare_csv_path, compare_enabled)
+        comp_path = (compare_csv_path or "").strip()
 
         cols = self._cols_for_mode(mode)
         total_pages = self.paging.total_pages(len(cols))
@@ -325,7 +327,8 @@ class TrainResultsPlotter:
                 idx = (page_now - 1) * self.paging.page_size + i
                 col = cols[idx] if idx < len(cols) else "(empty)"
                 figs.append(self.make_single_series_plot([], col, col))
-            return (*figs, "마지막 갱신: (대기 중) — results.csv 없음", timer_update, page_now)
+            # return (*figs, "마지막 갱신: (대기 중) — results.csv 없음", timer_update, page_now)
+            return *figs, page_now, "마지막 갱신: (대기 중) — results.csv 없음"
 
         # load data
         rows_primary = ensure_epoch(read_results_csv(primary_path))
@@ -351,7 +354,8 @@ class TrainResultsPlotter:
         comp_note = f"\ncompare: `{comp_path}`" if rows_compare else "\ncompare: (off)"
         msg = f"마지막 갱신: {ts}  \nprimary: `{primary_path}`{comp_note}  \n({mode} {page_now}/{total_pages})"
 
-        return (*figs, msg, timer_update, page_now)
+        # return (*figs, msg, timer_update, page_now)
+        return *figs, page_now, msg
 
 
 # ============================================================
@@ -655,16 +659,15 @@ def get_plotter(runs_dir: str, metric_cols: List[str], loss_cols: List[str]) -> 
     return _default_plotter
 
 
-def refresh_6plots_compare(
+def refresh_6plots_compare_manual(
     csv_path: str,
-    refresh_s: float,
     page_now: int,
     mode: str,
     runs_dir: str,
     metric_cols: list[str],
     loss_cols: list[str],
-    compare_csv_path: str = "",
-    compare_enabled: bool = True,
+    # compare_csv_path: str = "",
+    # compare_enabled: bool = True,
 ):
     """
         [호환용 래퍼]
@@ -675,13 +678,12 @@ def refresh_6plots_compare(
             (*figs(6), msg, timer_update, page_now)
     """
     plotter = get_plotter(runs_dir, metric_cols, loss_cols)
-    return plotter.refresh_6plots_compare(
+    return plotter.refresh_6plots_compare_manual(
         csv_path=csv_path,
-        refresh_s=refresh_s,
         page_now=page_now,
         mode=mode,
-        compare_csv_path=compare_csv_path,
-        compare_enabled=compare_enabled,
+        # compare_csv_path=compare_csv_path,
+        # compare_enabled=compare_enabled,
     )
 
 

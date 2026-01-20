@@ -10,9 +10,13 @@ from core.utils_csv import _build_runs_map, _on_run_change, _file_to_path
 from core.yolo_train import run_epoch_eval_manual
 from core.utilities import build_folder_picker, save_uploaded_file
 from core.train_monitor_service import (
-    refresh_6plots_compare, prev_page, next_page,
+    refresh_6plots_compare_manual, prev_page, next_page,
     build_epoch_conf_monitor_ui
 )
+
+mode = "all"
+# view_mode = "matrics"
+# view_mode = "loss"
 
 def build_tab3_train_monitor(trainer):
     with gr.Tab("3. Train Monitor"):
@@ -64,6 +68,7 @@ def build_tab3_train_monitor(trainer):
 
                         with gr.Column(scale=3):
                             with gr.Row():
+                                btn_refresh_plot = gr.Button("🔄 새로고침")
                                 btn_prev = gr.Button("◀ 이전")
                                 page_state = gr.State(1)
                                 page_view = gr.Markdown("페이지: 1")
@@ -75,7 +80,7 @@ def build_tab3_train_monitor(trainer):
                                     for _ in range(3):
                                         plot6.append(gr.Plot(label=""))
 
-                            # last_update = gr.Markdown("트레이닝을 시작하면 로그가 표시됩니다.")
+                            last_update = gr.Markdown("[plot 갱신]")
                             # train_log = gr.Textbox(
                             #     label="학습 로그",
                             #     lines=20,
@@ -131,7 +136,7 @@ def build_tab3_train_monitor(trainer):
 
 
 
-        timer = gr.Timer(value=2.0, active=False)
+        # timer = gr.Timer(value=2.0, active=False)
 
         results_csv_file.change(fn=lambda f: _file_to_path(f), inputs=[results_csv_file], outputs=[results_csv_path])
 
@@ -190,10 +195,33 @@ def build_tab3_train_monitor(trainer):
 
         def stop_train_and_timer():
             msg = trainer.stop_train()
-            return msg, gr.update(active=False)
+            return msg
 
         btn_stop_train.click(
             fn=stop_train_and_timer,
             inputs=[],
-            outputs=[train_status, timer],
+            outputs=[train_status],
         )
+
+        # plot 새로고침
+        def refresh_plots_manual(primary_csv, page):
+            return refresh_6plots_compare_manual(
+                csv_path=primary_csv,
+                page_now=int(page),
+                mode=mode,
+                runs_dir=RUNS_DIR,
+                metric_cols=METRIC_COLUMNS,
+                loss_cols=LOSS_COLUMNS,
+                # compare_csv_path=compare_csv,
+                # compare_enabled=bool(compare_csv),
+            )
+
+        btn_refresh_plot.click(
+            fn=refresh_plots_manual,
+            inputs=[
+                results_csv_path,
+                page_state,
+            ],
+            outputs=[*plot6, page_state, last_update],
+        )
+
