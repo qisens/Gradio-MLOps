@@ -28,7 +28,7 @@ class Paging:
     - safe_page(): 범위를 벗어난 page를 1~total_pages로 보정
     - prev_page()/next_page(): 이전/다음 페이지 계산(입력 타입이 str/None이어도 안전)
     """
-    page_size: int = 6
+    page_size: int
 
     def total_pages(self, n_cols: int) -> int:
         """
@@ -57,7 +57,7 @@ class Paging:
             return 1
         return max(1, min(int(page), int(total_pages)))
 
-    def prev_page(self, page: Union[int, str, None]) -> int:
+    def prev_page(page: int) -> int:
         """
             [페이지 번호 보정]
             page 값이 범위를 벗어나면 1~total_pages 범위로 clamp한다.
@@ -74,7 +74,7 @@ class Paging:
         except Exception:
             return 1
 
-    def next_page(self, page: Union[int, str, None], n_cols: int) -> int:
+    def next_page(page: int, total_pages: int) -> int:
         """
             [이전 페이지]
             page가 str/None일 수 있으므로 안전하게 int 변환 후 -1 한다.
@@ -89,8 +89,7 @@ class Paging:
             p = int(page)
         except Exception:
             p = 1
-        total = self.total_pages(n_cols)
-        return min(total, p + 1)
+        return min(total_pages, p + 1)
 
 
 # ============================================================
@@ -115,6 +114,7 @@ class TrainResultsPlotter:
         runs_dir: str,
         metric_cols: List[str],
         loss_cols: List[str],
+        page_size: int,
         paging: Optional[Paging] = None,
     ):
         """
@@ -127,7 +127,7 @@ class TrainResultsPlotter:
         self.runs_dir = runs_dir
         self.metric_cols = list(metric_cols or [])
         self.loss_cols = list(loss_cols or [])
-        self.paging = paging or Paging(page_size=6)
+        self.paging = Paging(page_size=page_size)
 
     # -----------------------
     # small helpers
@@ -284,7 +284,7 @@ class TrainResultsPlotter:
     # -----------------------
     # main refresh API
     # -----------------------
-    def refresh_6plots_compare_manual(
+    def refresh_plots(
          self,
          csv_path: str,
          page_now: int,
@@ -328,7 +328,7 @@ class TrainResultsPlotter:
                 col = cols[idx] if idx < len(cols) else "(empty)"
                 figs.append(self.make_single_series_plot([], col, col))
             # return (*figs, "마지막 갱신: (대기 중) — results.csv 없음", timer_update, page_now)
-            return *figs, page_now, "마지막 갱신: (대기 중) — results.csv 없음"
+            return page_now, *figs, "마지막 갱신: (대기 중) — results.csv 없음"
 
         # load data
         rows_primary = ensure_epoch(read_results_csv(primary_path))
@@ -355,7 +355,7 @@ class TrainResultsPlotter:
         msg = f"마지막 갱신: {ts}  \nprimary: `{primary_path}`{comp_note}  \n({mode} {page_now}/{total_pages})"
 
         # return (*figs, msg, timer_update, page_now)
-        return *figs, page_now, msg
+        return page_now, *figs, msg
 
 
 # ============================================================
@@ -617,74 +617,63 @@ class EpochConfMonitor:
 # ============================================================
 
 # paging wrappers
-_paging = Paging(page_size=6)
-
-def prev_page(p):
-    """
-        [호환용 래퍼] 이전 페이지 계산
-    """
-    return _paging.prev_page(p)
-
-def next_page(p, cols):
-    """
-        [호환용 래퍼] 다음 페이지 계산
-        cols는 컬럼 리스트로 들어오므로 len(cols)로 총 개수 계산 후 next_page에 전달
-    """
-    return _paging.next_page(p, len(cols))
-
-def safe_page(p: int, total_pages: int) -> int:
-    """
-        [호환용 래퍼] page 범위 보정
-    """
-    return _paging.safe_page(p, total_pages)
 
 
-# plotter singleton (기존 코드에서 바로 쓰던 스타일 유지 가능)
-_default_plotter: Optional[TrainResultsPlotter] = None
 
-def get_plotter(runs_dir: str, metric_cols: List[str], loss_cols: List[str]) -> TrainResultsPlotter:
-    """
-        [plotter 싱글톤 getter]
-        기존 코드가 '매번 plotter를 만들지 않고' 재사용하던 패턴을 유지하기 위한 함수.
-
-        주의:
-          - runs_dir / cols가 런타임에 바뀔 수 있다면, 캐시 무효화(재생성) 조건을 넣는 게 안전
-          - 대부분 고정이라면 싱글톤으로 두어도 충분히 동작
-    """
-    global _default_plotter
-    # runs_dir/cols가 바뀌면 새로 만드는 게 안전하지만,
-    # 대부분 고정이라면 싱글톤으로 둬도 OK.
-    if _default_plotter is None:
-        _default_plotter = TrainResultsPlotter(runs_dir, metric_cols, loss_cols, paging=_paging)
-    return _default_plotter
-
-
-def refresh_6plots_compare_manual(
-    csv_path: str,
-    page_now: int,
-    mode: str,
-    runs_dir: str,
-    metric_cols: list[str],
-    loss_cols: list[str],
-    # compare_csv_path: str = "",
-    # compare_enabled: bool = True,
-):
-    """
-        [호환용 래퍼]
-        기존 app.py에서 호출하던 refresh_6plots_compare 시그니처를 유지한다.
-        내부 구현은 TrainResultsPlotter.refresh_6plots_compare()에 위임한다.
-
-        Returns:
-            (*figs(6), msg, timer_update, page_now)
-    """
-    plotter = get_plotter(runs_dir, metric_cols, loss_cols)
-    return plotter.refresh_6plots_compare_manual(
-        csv_path=csv_path,
-        page_now=page_now,
-        mode=mode,
-        # compare_csv_path=compare_csv_path,
-        # compare_enabled=compare_enabled,
-    )
+# # plotter singleton (기존 코드에서 바로 쓰던 스타일 유지 가능)
+# _default_plotter: Optional[TrainResultsPlotter] = None
+#
+# def get_plotter(runs_dir: str, metric_cols: List[str], loss_cols: List[str]) -> TrainResultsPlotter:
+#     """
+#         [plotter 싱글톤 getter]
+#         기존 코드가 '매번 plotter를 만들지 않고' 재사용하던 패턴을 유지하기 위한 함수.
+#
+#         주의:
+#           - runs_dir / cols가 런타임에 바뀔 수 있다면, 캐시 무효화(재생성) 조건을 넣는 게 안전
+#           - 대부분 고정이라면 싱글톤으로 두어도 충분히 동작
+#     """
+#     global _default_plotter
+#     # runs_dir/cols가 바뀌면 새로 만드는 게 안전하지만,
+#     # 대부분 고정이라면 싱글톤으로 둬도 OK.
+#     if _default_plotter is None:
+#         _default_plotter = TrainResultsPlotter(
+#             runs_dir, metric_cols, loss_cols
+#         )
+#     return _default_plotter
+#
+#
+# def refresh_6plots_compare_manual_wrappers(
+#     csv_path: str,
+#     page_now: int,
+#     mode: str,
+#     runs_dir: str,
+#     metric_cols: list[str],
+#     loss_cols: list[str],
+#     page_size,
+#     # compare_csv_path: str = "",
+#     # compare_enabled: bool = True,
+# ):
+#     """
+#         [호환용 래퍼]
+#         기존 app.py에서 호출하던 refresh_6plots_compare 시그니처를 유지한다.
+#         내부 구현은 TrainResultsPlotter.refresh_6plots_compare()에 위임한다.
+#
+#         Returns:
+#             (*figs(6), msg, timer_update, page_now)
+#     """
+#     plotter = TrainResultsPlotter(
+#         runs_dir,
+#         metric_cols,
+#         loss_cols,
+#         page_size=page_size,
+#     )
+#     return plotter.refresh_6plots_compare_manual(
+#         csv_path=csv_path,
+#         page_now=page_now,
+#         mode=mode,
+#         # compare_csv_path=compare_csv_path,
+#         # compare_enabled=compare_enabled,
+#     )
 
 
 # epoch conf monitor UI builder wrapper
