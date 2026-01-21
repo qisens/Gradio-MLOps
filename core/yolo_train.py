@@ -2,6 +2,7 @@ import os
 import threading
 import subprocess
 from core.epoch_eval import run_epoch_reports_in_weights_dir
+import re
 
 import re
 ANSI_ESCAPE = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
@@ -168,9 +169,17 @@ class YoloTrainer:
             imgsz, epochs, batch, lr0,
             device_str="0"
     ):
+
+        EPOCH_LINE_RE = re.compile(r"^\s*(\d+)/(\d+)\s")
+        EPOCH_END_RE = re.compile(r"^\s*all\s+\d+\s+\d+")
+
+        log_buf = []
+        epoch_tick = 0
+        current_epoch = None
+
         with self._lock:
             if self._proc is not None and self._proc.poll() is None:
-                yield "이미 학습이 실행 중입니다."
+                yield "이미 학습이 실행 중입니다.", epoch_tick
                 return
 
             def norm(p: str) -> str:
@@ -194,7 +203,8 @@ class YoloTrainer:
                 f"name=demo_exp",
             ]
 
-            yield f"[INFO] 학습 시작\n{' '.join(cmd)}\n"
+            log_buf.append(f"[INFO] 학습 시작\n{' '.join(cmd)}\n")
+            yield self.update_log("\n".join(log_buf)), epoch_tick
 
             self._proc = subprocess.Popen(
                 cmd,
@@ -205,7 +215,7 @@ class YoloTrainer:
                 bufsize=1,
             )
 
-        log_buf = []
+
 
         try:
             for raw_line in self._proc.stdout:
@@ -220,6 +230,15 @@ class YoloTrainer:
                 # if not line.strip():
                 #     continue
 
+                # ── epoch 번호 감지 ──
+                m = EPOCH_LINE_RE.match(line)
+                if m:
+                    current_epoch = int(m.group(1))
+
+                # ── epoch 종료 감지 (validation summary) ──
+                if EPOCH_END_RE.match(line):
+                    epoch_tick += 1
+
                 log_buf.append(line)
 
                 # 로그가 너무 커지는 것 방지 (최근 N줄만 유지)
@@ -227,24 +246,20 @@ class YoloTrainer:
                     log_buf = log_buf[-500:]
 
                 # 🔥 여기서 yield → Gradio Textbox 실시간 갱신
-                # yield "\n".join(log_buf)
-                yield self.update_log("\n".join(log_buf))
+                yield self.update_log("\n".join(log_buf)), epoch_tick
 
             rc = self._proc.wait()
             log_buf.append(f"[INFO] 학습 종료 (return code={rc})")
 
         except Exception as e:
-            # yield "\n".join(log_buf) + f"\n[ERROR] 예외 발생: {e}"
-            yield self.update_log("\n".join(log_buf) + f"\n[ERROR] 예외 발생: {e}")
-
+            log_buf.append(f"[ERROR] 예외 발생: {e}")
 
         finally:
             with self._lock:
                 self._proc = None
 
             # ✅ 마지막에 반드시 전체 로그 yield
-            # yield "\n".join(log_buf)
-            yield self.update_log("\n".join(log_buf))
+            yield self.update_log("\n".join(log_buf)), epoch_tick
 
     def _wait_for_finish(self):
         """

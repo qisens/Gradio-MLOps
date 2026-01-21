@@ -139,15 +139,21 @@ def build_tab3_train_monitor(trainer):
                             # gr.Markdown("### Epoch / Best / Last Conf 추세 (스캔)")
                             build_epoch_conf_monitor_ui(default_weights_dir="")
 
-
-
-        # timer = gr.Timer(value=2.0, active=False)
+        # plot 관련
+        epoch_tick = gr.State(0)
 
         results_csv_file.change(fn=lambda f: _file_to_path(f), inputs=[results_csv_file], outputs=[results_csv_path])
 
         btn_refresh_runs.click(fn=_build_runs_map, inputs=[task], outputs=[runs_dropdown, runs_map_state, prev_results_csv_path])
         runs_dropdown.change(fn=_on_run_change, inputs=[runs_dropdown, runs_map_state], outputs=[prev_results_csv_path])
 
+        # 버튼 클릭 리스너 두개 등록 가능. train 새로 시작할때 state 초기화 위함
+        btn_start_train.click(
+            fn=lambda: 0,
+            inputs=[],
+            outputs=[epoch_tick],
+            queue=False,
+        )
         btn_start_train.click(
             fn=trainer.start_train_stream,
             inputs=[
@@ -155,7 +161,7 @@ def build_tab3_train_monitor(trainer):
                 monitor_imgsz, monitor_epochs,
                 monitor_batch, monitor_lr0
             ],
-            outputs=[log_box],
+            outputs=[log_box, epoch_tick],
         )
 
         def stop_train_and_timer():
@@ -168,11 +174,25 @@ def build_tab3_train_monitor(trainer):
             outputs=[train_status],
         )
 
+        # plot 관련
         plotter = TrainResultsPlotter(
             RUNS_DIR,
             METRIC_COLUMNS,
             LOSS_COLUMNS,
             page_size=PLOT_PAGE_SIZE,
+        )
+
+        def on_epoch_tick(_, primary_csv, page):
+            return plotter.refresh_plots(
+                csv_path=primary_csv,
+                page_now=page,
+                mode=mode,
+            )
+
+        epoch_tick.change(
+            fn=on_epoch_tick,
+            inputs=[epoch_tick, results_csv_path, page_state],
+            outputs=[page_state, *plot_list, last_update],
         )
 
         def on_prev_page(primary_csv, page):
