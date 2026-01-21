@@ -12,6 +12,7 @@ from ui.tabs.tab4_perf_monitor import build_tab4_perf_monitor
 from ui.tabs.tab5_labeling import build_tab5_labeling
 from ui.tabs.tab6_compare import build_tab6_compare
 from core.yolo_train import YoloTrainer
+from core.utils_csv import _build_runs_map
 
 def create_demo():
     all_js = load_all_js("./json")
@@ -19,20 +20,45 @@ def create_demo():
     trainer = YoloTrainer(yolo_cli=YOLO_CLI, project_root=PROJECT_ROOT)
 
     with gr.Blocks(css="""
+    /* gradio textbox 로그 스타일 */
     #log_box textarea {
         background-color: #f3f4f6;
         color: #111827;
         font-family: monospace;
         font-size: 13px;
     }
+    
+    /* html textbox 로그 스타일 */
+    #logbox {
+        height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-family: monospace;
+        font-size: 13px;
+        background-color: #f3f4f6;
+        color: #111827;
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+    }
     """) as demo:
         with gr.Tabs():
             build_tab1_viewer()
             build_tab2_dataset()
-            build_tab3_train_monitor(trainer=trainer)
+            tab3 = build_tab3_train_monitor(trainer=trainer)
             build_tab4_perf_monitor()
             build_tab5_labeling()
             build_tab6_compare()
+
+        demo.load(
+            fn=_build_runs_map,
+            inputs=[tab3["task"]],
+            outputs=[
+                tab3["runs_dropdown"],
+                tab3["runs_map_state"],
+                tab3["prev_results_csv_path"],
+            ],
+        )
 
     return demo, all_js
     #return demo

@@ -74,27 +74,7 @@ class YoloTrainer:
         self._epoch_eval_done_for = set()
 
     def update_log(self, log_text):
-        return f"""
-        <div id="logbox"
-             style="
-                height: 400px;
-                overflow-y: auto;
-                white-space: pre-wrap;
-                font-family: monospace;
-                background: #f3f4f6;
-                color: #111827;
-                padding: 8px;
-             ">
-        {log_text}
-        </div>
-
-        <script>
-            const box = document.getElementById("logbox");
-            if (box) {{
-                box.scrollTop = box.scrollHeight;
-            }}
-        </script>
-        """
+        return log_text
 
     def start_train(self, task, data_yaml, model_pt, imgsz, epochs, batch, lr0, device_str="0,1,2,3"):
         """
@@ -176,10 +156,11 @@ class YoloTrainer:
         log_buf = []
         epoch_tick = 0
         current_epoch = None
+        results_csv_path = ""
 
         with self._lock:
             if self._proc is not None and self._proc.poll() is None:
-                yield "이미 학습이 실행 중입니다.", epoch_tick
+                yield "이미 학습이 실행 중입니다.", epoch_tick, ""
                 return
 
             def norm(p: str) -> str:
@@ -204,7 +185,7 @@ class YoloTrainer:
             ]
 
             log_buf.append(f"[INFO] 학습 시작\n{' '.join(cmd)}\n")
-            yield self.update_log("\n".join(log_buf)), epoch_tick
+            yield self.update_log("\n".join(log_buf)), epoch_tick, ""
 
             self._proc = subprocess.Popen(
                 cmd,
@@ -214,8 +195,6 @@ class YoloTrainer:
                 text=True,
                 bufsize=1,
             )
-
-
 
         try:
             for raw_line in self._proc.stdout:
@@ -246,10 +225,17 @@ class YoloTrainer:
                     log_buf = log_buf[-500:]
 
                 # 🔥 여기서 yield → Gradio Textbox 실시간 갱신
-                yield self.update_log("\n".join(log_buf)), epoch_tick
+                yield self.update_log("\n".join(log_buf)), epoch_tick, ""
 
             rc = self._proc.wait()
             log_buf.append(f"[INFO] 학습 종료 (return code={rc})")
+
+            # ✅ 여기서 최신 results.csv 찾기
+            run_dir = self.get_latest_run_dir(task)
+            if run_dir:
+                candidate = os.path.join(run_dir, "results.csv")
+                if os.path.exists(candidate):
+                    results_csv_path = candidate
 
         except Exception as e:
             log_buf.append(f"[ERROR] 예외 발생: {e}")
@@ -259,7 +245,7 @@ class YoloTrainer:
                 self._proc = None
 
             # ✅ 마지막에 반드시 전체 로그 yield
-            yield self.update_log("\n".join(log_buf)), epoch_tick
+            yield self.update_log("\n".join(log_buf)), epoch_tick, results_csv_path
 
     def _wait_for_finish(self):
         """

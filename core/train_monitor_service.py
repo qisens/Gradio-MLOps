@@ -313,8 +313,8 @@ class TrainResultsPlotter:
 
         # paths
         primary_path = self.resolve_primary_csv(csv_path)
-        # comp_path = self.resolve_compare_csv(compare_csv_path, compare_enabled)
-        comp_path = (compare_csv_path or "").strip()
+        comp_path = self.resolve_compare_csv(compare_csv_path, compare_enabled)
+        # comp_path = (compare_csv_path or "").strip()
 
         cols = self._cols_for_mode(mode)
         total_pages = self.paging.total_pages(len(cols))
@@ -610,71 +610,6 @@ class EpochConfMonitor:
             "csv_file": csv_file,
             "status": status,
         }
-
-
-# ============================================================
-# 4) Backward-compatible function wrappers (기존 호출 유지용)
-# ============================================================
-
-# paging wrappers
-
-
-
-# # plotter singleton (기존 코드에서 바로 쓰던 스타일 유지 가능)
-# _default_plotter: Optional[TrainResultsPlotter] = None
-#
-# def get_plotter(runs_dir: str, metric_cols: List[str], loss_cols: List[str]) -> TrainResultsPlotter:
-#     """
-#         [plotter 싱글톤 getter]
-#         기존 코드가 '매번 plotter를 만들지 않고' 재사용하던 패턴을 유지하기 위한 함수.
-#
-#         주의:
-#           - runs_dir / cols가 런타임에 바뀔 수 있다면, 캐시 무효화(재생성) 조건을 넣는 게 안전
-#           - 대부분 고정이라면 싱글톤으로 두어도 충분히 동작
-#     """
-#     global _default_plotter
-#     # runs_dir/cols가 바뀌면 새로 만드는 게 안전하지만,
-#     # 대부분 고정이라면 싱글톤으로 둬도 OK.
-#     if _default_plotter is None:
-#         _default_plotter = TrainResultsPlotter(
-#             runs_dir, metric_cols, loss_cols
-#         )
-#     return _default_plotter
-#
-#
-# def refresh_6plots_compare_manual_wrappers(
-#     csv_path: str,
-#     page_now: int,
-#     mode: str,
-#     runs_dir: str,
-#     metric_cols: list[str],
-#     loss_cols: list[str],
-#     page_size,
-#     # compare_csv_path: str = "",
-#     # compare_enabled: bool = True,
-# ):
-#     """
-#         [호환용 래퍼]
-#         기존 app.py에서 호출하던 refresh_6plots_compare 시그니처를 유지한다.
-#         내부 구현은 TrainResultsPlotter.refresh_6plots_compare()에 위임한다.
-#
-#         Returns:
-#             (*figs(6), msg, timer_update, page_now)
-#     """
-#     plotter = TrainResultsPlotter(
-#         runs_dir,
-#         metric_cols,
-#         loss_cols,
-#         page_size=page_size,
-#     )
-#     return plotter.refresh_6plots_compare_manual(
-#         csv_path=csv_path,
-#         page_now=page_now,
-#         mode=mode,
-#         # compare_csv_path=compare_csv_path,
-#         # compare_enabled=compare_enabled,
-#     )
-
 
 # epoch conf monitor UI builder wrapper
 _epoch_monitor = EpochConfMonitor()
