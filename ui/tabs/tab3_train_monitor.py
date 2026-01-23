@@ -14,16 +14,18 @@ def build_tab3_train_monitor(trainer):
         epoch_tick = gr.State(0)
         compare_csv_state = gr.State("")
         compare_enabled_state = gr.State(False)
+        train_log_message_state = gr.State("")
 
         with gr.Tab("Training"):
             with gr.Row():
                 with gr.Column(scale=2):
-                    tab1 = build_train_new(
+                    train_new_tab = build_train_new(
                         trainer=trainer,
                         results_csv_path=results_csv_path,
                         epoch_tick=epoch_tick,
+                        train_log_message_state=train_log_message_state,
                     )
-                    task = tab1["task"]
+                    task = train_new_tab["task"]
 
                     compare_tab = build_train_compare(
                         task=task,
@@ -38,6 +40,7 @@ def build_tab3_train_monitor(trainer):
                     epoch_tick=epoch_tick,
                     compare_csv_state=compare_csv_state,
                     compare_enabled_state=compare_enabled_state,
+                    train_log_message_state=train_log_message_state,
                 )
 
         with gr.Tab("best 모델 평가"):

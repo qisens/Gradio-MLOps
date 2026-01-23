@@ -10,6 +10,7 @@ def build_train_new(
     trainer,
     results_csv_path,
     epoch_tick,
+    train_log_message_state,
 ):
     with gr.Tab(label="새로운 training 시작"):
         task = gr.Radio(["segment", "detect"], value="segment", label="YOLO Task")
@@ -57,7 +58,7 @@ def build_train_new(
             btn_start_train = gr.Button("학습 시작 (CLI)", variant="primary")
             btn_stop_train = gr.Button("학습 강제 종료", variant="stop")
 
-        log_box = build_log_textbox(label="학습 로그", lines=20)
+        # log_box = build_log_textbox(label="학습 로그", lines=20)
 
         # ===== 이벤트 =====
 
@@ -78,12 +79,12 @@ def build_train_new(
                 monitor_batch,
                 monitor_lr0,
             ],
-            outputs=[log_box, epoch_tick, results_csv_path],
+            outputs=[train_log_message_state, epoch_tick, results_csv_path],
         )
 
         btn_stop_train.click(
             fn=lambda: trainer.stop_train(),
-            outputs=[log_box],
+            outputs=[train_log_message_state],
         )
 
     return {

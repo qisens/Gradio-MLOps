@@ -16,6 +16,7 @@ def build_train_plot(
     epoch_tick,
     compare_csv_state,
     compare_enabled_state,
+    train_log_message_state,
 ):
     plotter = TrainResultsPlotter(
         RUNS_DIR,
@@ -39,18 +40,21 @@ def build_train_plot(
                     plot_list.append(gr.Plot(label=""))
 
         last_update = build_markdown_log_box(title="plot 갱신", value="",)
-        # log_box = build_log_textbox(label="학습 로그", lines=20)
+        log_box = build_log_textbox(label="학습 로그", lines=20)
 
 
     # ===== 이벤트 =====
 
-    def refresh(csv_path, page, compare_csv, compare_enabled):
-        return plotter.refresh_plots(
-            csv_path=csv_path,
-            page_now=page,
-            mode=mode,
-            compare_csv_path=compare_csv,
-            compare_enabled=compare_enabled,
+    def refresh(csv_path, page, compare_csv, compare_enabled, log_message):
+        return (
+            *plotter.refresh_plots(
+                csv_path=csv_path,
+                page_now=page,
+                mode=mode,
+                compare_csv_path=compare_csv,
+                compare_enabled=compare_enabled,
+            ),
+            log_message,
         )
 
     def register_refresh(trigger):
@@ -61,11 +65,13 @@ def build_train_plot(
                 page_state,
                 compare_csv_state,
                 compare_enabled_state,
+                train_log_message_state,
             ],
             outputs=[
                 page_state,
                 *plot_list,
                 last_update,
+                log_box,
             ],
         )
     register_refresh(epoch_tick.change)
@@ -74,16 +80,36 @@ def build_train_plot(
     register_refresh(compare_csv_state.change)
     register_refresh(compare_enabled_state.change)
 
+    def move_page(p, delta):
+        return max(1, int(p) + delta)
+
     btn_prev.click(
-        fn=lambda p: refresh(int(p) - 1),
+        fn=lambda p: move_page(p, -1),
         inputs=[page_state],
-        outputs=[page_state, *plot_list, last_update],
+        outputs=[page_state],
     )
 
     btn_next.click(
-        fn=lambda p: refresh(int(p) + 1),
+        fn=lambda p: move_page(p, +1),
         inputs=[page_state],
-        outputs=[page_state, *plot_list, last_update],
+        outputs=[page_state],
+    )
+
+    page_state.change(
+        fn=refresh,
+        inputs=[
+            results_csv_path,
+            page_state,
+            compare_csv_state,
+            compare_enabled_state,
+            train_log_message_state,  # 로그 state 쓰는 경우
+        ],
+        outputs=[
+            page_state,
+            *plot_list,
+            last_update,
+            log_box,
+        ],
     )
 
     page_state.change(
