@@ -12,6 +12,7 @@ from core.utilities import (
     _is_image, _stem, _safe_dir_from_selection,
     _list_images_in_dir, _draw_outlines_only
 )
+from ui.tabs._ui_shared import build_markdown_log_box
 
 # -----------------------------
 # State model
@@ -423,11 +424,10 @@ def build_tab1_viewer():
                     )
 
         # gr.Group()의 배경이 회색임. 그래서 더 로그같이 보이는거.
-        with gr.Group():
-            gr.Markdown("### [경로 설정 상태 로그]")
-            info_box = gr.Markdown(
-                value="서버 또는 로컬에서 경로를 선택해 주세요."
-            )
+        info_box = build_markdown_log_box(
+            title="경로 설정 상태 로그",
+            value="서버 또는 로컬에서 경로를 선택해 주세요.",
+        )
 
         with gr.Row():
             with gr.Column(scale=1):

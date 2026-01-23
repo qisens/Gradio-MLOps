@@ -10,6 +10,7 @@ from core.dataset_service import (
     copy_existing_dataset_into_final,
     upload_files_to_labeling_dataset
 )
+from ui.tabs._ui_shared import build_markdown_log_box
 
 def build_tab2_dataset():
     with gr.Tab("2. Dataset 설정"):
@@ -112,11 +113,10 @@ def build_tab2_dataset():
                     value=[],
                 )
 
-                with gr.Group():
-                    gr.Markdown("### [최종 저장 경로]")
-                    out_root_view = gr.Markdown(
-                        value="왼쪽에서 저장 경로를 설정해 주세요."
-                    )
+                out_root_view= build_markdown_log_box(
+                    title="최종 저장 경로",
+                    value="왼쪽에서 저장 경로를 설정해 주세요.",
+                )
 
                 split_btn = gr.Button("✅ 체크 기준으로 train/val 분할 복사 실행")
 

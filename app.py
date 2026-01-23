@@ -28,7 +28,7 @@ def create_demo():
         font-size: 13px;
     }
     
-    /* html textbox 로그 스타일 */
+    /* html textbox 로그 스타일*/
     #logbox {
         height: 400px;
         overflow-y: auto;
@@ -51,12 +51,21 @@ def create_demo():
             build_tab6_compare()
 
         demo.load(
-            fn=_build_runs_map,
+            fn=lambda task_name: (
+                *tab3["refresh"]["runs"](task_name),
+                *tab3["refresh"]["weights"](task_name),
+            ),
             inputs=[tab3["task"]],
             outputs=[
-                tab3["runs_dropdown"],
-                tab3["runs_map_state"],
-                tab3["prev_results_csv_path"],
+                # compare runs selector
+                tab3["compare_selector"]["dropdown"],
+                tab3["compare_selector"]["map_state"],
+                tab3["compare_selector"]["path"],
+
+                # weights selector
+                tab3["weights_selector"]["dropdown"],
+                tab3["weights_selector"]["map_state"],
+                tab3["weights_selector"]["path"],
             ],
         )
 

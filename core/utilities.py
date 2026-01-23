@@ -322,6 +322,8 @@ class FolderNavigator:
             label=f"{label} - 현재 경로",
             value=self.current_dir,
             interactive=False,
+            lines=3,
+            elem_id="log_box",
         )
 
         with gr.Row():

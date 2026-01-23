@@ -611,8 +611,8 @@ class EpochConfMonitor:
             "status": status,
         }
 
-# epoch conf monitor UI builder wrapper
-_epoch_monitor = EpochConfMonitor()
-
-def build_epoch_conf_monitor_ui(default_weights_dir: str = ""):
-    return _epoch_monitor.build_ui(default_weights_dir=default_weights_dir)
+# # epoch conf monitor UI builder wrapper
+# _epoch_monitor = EpochConfMonitor()
+#
+# def build_epoch_conf_monitor_ui(default_weights_dir: str = ""):
+#     return _epoch_monitor.build_ui(default_weights_dir=default_weights_dir)
