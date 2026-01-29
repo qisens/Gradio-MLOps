@@ -11,6 +11,7 @@ from ui.tabs.tab3_train_monitor import build_tab3_train_monitor
 from ui.tabs.tab4_perf_monitor import build_tab4_perf_monitor
 from ui.tabs.tab5_labeling import build_tab5_labeling
 from ui.tabs.tab6_compare import build_tab6_compare
+from ui.tabs.tab7_inference import build_tab7_inference
 from core.yolo_train import YoloTrainer
 from core.utils_csv import _build_runs_map
 
@@ -49,11 +50,14 @@ def create_demo():
             build_tab4_perf_monitor()
             build_tab5_labeling()
             build_tab6_compare()
+            tab7 = build_tab7_inference()
 
         demo.load(
             fn=lambda task_name: (
                 *tab3["refresh"]["runs"](task_name),
                 *tab3["refresh"]["weights"](task_name),
+                *tab3["refresh"]["weights"](task_name),  # ← tab7도 같은 weights 사용
+
             ),
             inputs=[tab3["task"]],
             outputs=[
@@ -66,6 +70,11 @@ def create_demo():
                 tab3["weights_selector"]["dropdown"],
                 tab3["weights_selector"]["map_state"],
                 tab3["weights_selector"]["path"],
+
+                # tab7 weights selector
+                tab7["weights_selector"]["dropdown"],
+                tab7["weights_selector"]["map_state"],
+                tab7["weights_selector"]["path"],
             ],
         )
 

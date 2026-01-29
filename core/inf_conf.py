@@ -266,7 +266,7 @@ def _predict_one(model_path: str, img_bgr: np.ndarray, imgsz: int, conf: float, 
     vis = vis[:, :, ::-1]
 
     summary = _result_to_summary_df(res)
-    return vis, summary
+    return vis, summary, res
 
 def compare_infer_two_models(
     img_path: str,
