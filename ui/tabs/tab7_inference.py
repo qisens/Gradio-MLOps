@@ -1,7 +1,7 @@
 # ui/tabs/tab7_inference.py
 import gradio as gr
 import os
-from core.file_browser import list_dir, join_path, parent_dir, filter_files, IMAGE_EXTS, MODEL_EXTS
+from core.file_browser import IMAGE_EXTS
 from ui.tabs._ui_shared import build_path_dropdown_selector, build_markdown_log_box, build_log_textbox
 from core.utilities import build_folder_picker
 from core.config import PROJECT_ROOT
@@ -9,6 +9,7 @@ from core.inf_conf import _predict_one
 import cv2
 import shutil
 from pathlib import Path
+from ui.shared.js_assets import save_polygons_for_editor_from_seg_txt #json 만들기 위함
 
 from datetime import datetime
 def get_today_ymd():
@@ -85,34 +86,6 @@ def build_inference_tab(
     viewer_state = gr.State()  # tab1의 SourceState
 
     ''' event '''
-
-    def load_image_folder(folder_path: str):
-        if not folder_path or not os.path.isdir(folder_path):
-            return [], 0, None, ""
-
-        files = sorted([
-            f for f in os.listdir(folder_path)
-            if os.path.splitext(f)[1].lower() in IMAGE_EXTS
-        ])
-
-        if not files:
-            return [], 0, None, ""
-
-        first_path = os.path.join(folder_path, files[0])
-        img = cv2.imread(first_path)
-
-        return files, 0, img[:, :, ::-1], files[0]
-
-    def move_image(step, img_list, idx, folder):
-        if not img_list:
-            return idx, None, ""
-
-        new_idx = max(0, min(idx + step, len(img_list) - 1))
-        img_path = os.path.join(folder, img_list[new_idx])
-        img = cv2.imread(img_path)
-
-        return new_idx, img[:, :, ::-1], img_list[new_idx]
-
     def infer_folder(
             img_dir: str,
             weights_dir: str,
@@ -264,6 +237,33 @@ def build_inference_tab(
         with open(txt_path, "w") as f:
             f.write("\n".join(lines))
 
+    # json 생성
+    def generate_json_from_img_txt(
+            img_path: str,
+            txt_path: str,
+            json_out_path: str,
+            conf_threshold: float = 0.25,
+    ):
+        """
+        inference img + txt → polygon json 생성
+        """
+        if not os.path.exists(img_path):
+            return False, f"[JSON] 이미지 없음: {os.path.basename(img_path)}"
+
+        if not os.path.exists(txt_path):
+            return False, f"[JSON] txt 없음: {os.path.basename(txt_path)}"
+
+        json_path, _ = save_polygons_for_editor_from_seg_txt(
+            image_path=img_path,
+            txt_path=txt_path,
+            classes_txt_path=None,  # 필요하면 나중에 추가
+            json_path=json_out_path,
+            conf_threshold=conf_threshold,
+            assume_normalized="auto",
+        )
+
+        return True, json_path
+
     # 이미지 이전 / 다음
     def viewer_move(step: int, state: dict):
         if not state or not state.get("images"):
@@ -337,23 +337,59 @@ def build_inference_tab(
         save_root = os.path.join(PROJECT_ROOT, "7_inference", "bad_cases")
         save_img_dir = os.path.join(save_root, dataset_name_with_date, "images")
         save_txt_dir = os.path.join(save_root, dataset_name_with_date, "labels")
+        save_json_dir = os.path.join(save_root, dataset_name_with_date, "json")
         os.makedirs(save_img_dir, exist_ok=True)
         os.makedirs(save_txt_dir, exist_ok=True)
+        os.makedirs(save_json_dir, exist_ok=True)
 
+        logs = []
         count = 0
+
         for fname in state["bad_images"]:
             src_img = os.path.join(orig_dir, fname)
             dst_img = os.path.join(save_img_dir, fname)
+
             txt_fname = fname.replace(".jpg", ".txt")
             src_txt = os.path.join(labels_dir, txt_fname)
             dst_txt = os.path.join(save_txt_dir, txt_fname)
 
-            if os.path.exists(src_img):
-                shutil.copy2(src_img, dst_img)
-                shutil.copy2(src_txt, dst_txt)
-                count += 1
+            json_fname = fname.replace(".jpg", ".json")
+            dst_json = os.path.join(save_json_dir, json_fname)
 
-        return f"✅ 불량 이미지 {count}개 저장 완료\n📁 {save_img_dir}"
+            if not os.path.exists(src_img):
+                logs.append(f"[MISSING IMAGE] {fname}")
+                continue
+
+            if not os.path.exists(src_txt):
+                logs.append(f"[MISSING TXT] {txt_fname}")
+                continue
+
+            # 1. copy image
+            shutil.copy2(src_img, dst_img)
+
+            # 2. copy txt
+            shutil.copy2(src_txt, dst_txt)
+
+            # 3. generate json
+            ok, msg = generate_json_from_img_txt(
+                img_path=dst_img,
+                txt_path=dst_txt,
+                json_out_path=dst_json,
+                conf_threshold=0.25,
+            )
+
+            if not ok:
+                logs.append(msg)
+                continue
+
+            count += 1
+
+        summary = f"✅ 이미지 {count}개 복사 완료\n📁 {save_img_dir}"
+
+        if logs:
+            summary += "\n\n⚠️ 로그:\n" + "\n".join(logs)
+
+        return summary
 
     def render_bad_list(state: dict):
         if not state or not state.get("bad_images"):
