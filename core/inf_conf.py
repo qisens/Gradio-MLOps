@@ -318,3 +318,135 @@ def compare_infer_two_models(
     new_vis, new_df = _predict_one(new_model_path, img, imgsz, conf_thres, iou_thres, device)
 
     return old_vis, new_vis, old_df, new_df, "[OK] 비교 추론 완료"
+
+def summarize_conf_for_dir(
+    img_dir: str,
+    model_path: str,
+    imgsz: int = 640,
+    conf_thres: float = 0.25,
+    iou_thres: float = 0.5,
+    device: str = "cuda:1"
+) -> pd.DataFrame:
+    """
+    폴더 내 모든 이미지에 대해 model로 추론 후,
+    클래스별 conf 통계 + 전체(ALL) conf 통계를 반환한다.
+
+    반환 컬럼:
+      - cls: int (클래스 id), 전체 요약은 -1 (ALL)
+      - count: int
+      - conf_mean/conf_min/conf_max: float
+
+    정렬:
+      - 클래스(0,1,2,...) 오름차순
+      - ALL(-1)은 항상 마지막
+    """
+    empty = pd.DataFrame(columns=["cls", "count", "conf_mean", "conf_min", "conf_max"])
+
+    if not img_dir or not os.path.isdir(img_dir):
+        return empty
+    if not model_path:
+        return empty
+
+    # 이미지 수집 (폴더 직속 파일만)
+    imgs: list[str] = []
+    for ext in IMAGE_EXTS:
+        imgs += glob.glob(os.path.join(img_dir, f"*{ext}"))
+        imgs += glob.glob(os.path.join(img_dir, f"*{ext.upper()}"))
+    imgs = sorted(set(imgs))
+
+    print("[DIR]", img_dir)
+    print("[N IMAGES]", len(imgs))
+    print("[FIRST 5]", list(imgs)[:5])
+
+    if not imgs:
+        return empty
+
+    # cls -> {count, conf_sum, conf_min, conf_max}
+    acc: dict[int, dict[str, float]] = {}
+
+    for p in imgs:
+        img = cv2.imread(p)
+        if img is None:
+            continue
+
+        # _predict_one은 (vis, per_img_df) 반환
+        _, per_img_df = _predict_one(model_path, img, imgsz, conf_thres, iou_thres, device)
+        if per_img_df is None or per_img_df.empty:
+            continue
+
+        for _, r in per_img_df.iterrows():
+            cls = int(r["cls"])
+            cnt = int(r["count"])
+            mean = float(r["conf_mean"])
+            cmin = float(r["conf_min"])
+            cmax = float(r["conf_max"])
+
+            # mean만 있으니 sum으로 복원
+            conf_sum = mean * cnt
+
+            if cls not in acc:
+                acc[cls] = {
+                    "count": 0,
+                    "conf_sum": 0.0,
+                    "conf_min": cmin,
+                    "conf_max": cmax,
+                }
+
+            acc[cls]["count"] += cnt
+            acc[cls]["conf_sum"] += conf_sum
+            acc[cls]["conf_min"] = min(acc[cls]["conf_min"], cmin)
+            acc[cls]["conf_max"] = max(acc[cls]["conf_max"], cmax)
+
+    if not acc:
+        return empty
+
+    # rows 생성 + 전체(ALL) 누적
+    rows: list[dict] = []
+
+    total_count = 0
+    total_conf_sum = 0.0
+    total_conf_min: Optional[float] = None
+    total_conf_max: Optional[float] = None
+
+    for cls, v in acc.items():
+        cnt = int(v["count"])
+        conf_sum = float(v["conf_sum"])
+        cmin = float(v["conf_min"])
+        cmax = float(v["conf_max"])
+
+        rows.append({
+            "cls": cls,
+            "count": cnt,
+            "conf_mean": (conf_sum / cnt) if cnt else 0.0,
+            "conf_min": cmin,
+            "conf_max": cmax,
+        })
+
+        total_count += cnt
+        total_conf_sum += conf_sum
+        total_conf_min = cmin if total_conf_min is None else min(total_conf_min, cmin)
+        total_conf_max = cmax if total_conf_max is None else max(total_conf_max, cmax)
+
+    # 전체(ALL) row 추가: cls = -1 (Gradio number 타입 유지)
+    if total_count > 0 and total_conf_min is not None and total_conf_max is not None:
+        rows.append({
+            "cls": -1,  # ALL
+            "count": total_count,
+            "conf_mean": total_conf_sum / total_count,
+            "conf_min": total_conf_min,
+            "conf_max": total_conf_max,
+        })
+
+    df = pd.DataFrame(rows)
+
+    # 정렬: 클래스 오름차순, ALL(-1)은 마지막 고정
+    df_all = df[df["cls"] == -1]
+    df_cls = df[df["cls"] != -1].sort_values("cls")
+    df = pd.concat([df_cls, df_all], ignore_index=True)
+
+    # 소수점 자리수 정리 (conf 관련 컬럼만)
+    for col in ["conf_mean", "conf_min", "conf_max"]:
+        if col in df.columns:
+            df[col] = df[col].round(4)
+
+    return df.reset_index(drop=True)
