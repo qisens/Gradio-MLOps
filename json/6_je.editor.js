@@ -547,6 +547,32 @@ window.save_json_via_filepicker = async function (suggestedName, jsonText) {
 console.log("[OK] save_json_via_filepicker loaded:", typeof window.save_json_via_filepicker);
 
 
+// jeeeun 추가. tab 바뀔때 캔버스 리셋
+window.reset_editor = function () {
+    console.log("[editor] reset");
+
+    const canvas = document.getElementById("edit_canvas");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    // 1. canvas clear
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 2. 내부 상태 초기화 (네 editor에 맞게)
+    window.__EDITOR_STATE__ = {
+        image: null,
+        polygons: [],
+        activePolygon: null,
+    };
+
+    // 3. undo / redo 스택 비우기
+    window.__UNDO_STACK__ = [];
+    window.__REDO_STACK__ = [];
+
+    // 필요하면 mode도 초기화
+    window.__ADD_MODE__ = false;
+};
 
 
 

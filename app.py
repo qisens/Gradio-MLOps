@@ -42,6 +42,18 @@ def create_demo():
         border-radius: 6px;
         border: 1px solid #e5e7eb;
     }
+        
+    #optional-accordion {
+        /* tab5 Accordion 전체 높이 제한 */
+        max-height: 290px;      /* 왼쪽 영역 높이에 맞게 조절 */
+        overflow: hidden;
+    } #optional-accordion .wrap {
+        /* Accordion 내부만 스크롤 */
+        max-height: 280px;
+        overflow-y: auto;
+        padding-right: 6px;
+    }
+    
     """) as demo:
         with gr.Tabs():
             build_tab1_viewer()

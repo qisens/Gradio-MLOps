@@ -300,16 +300,8 @@ def build_tab5_labeling_folder():
 
         next_btn = gr.Button("Next ➡")
 
-    gr.HTML("""
-    <div style="display:flex; justify-content:center; width:100%; margin-top:10px;">
-        <canvas id="edit_canvas" width="800" height="600" style="border:1px solid white;"></canvas>
-    </div>
-    """)
-
     # Load JSON + Attach JS Editor
     load_out = gr.JSON(visible=False)
-
-
 
     ''' 버튼 클릭 리스너 및 ui 관련 함수 '''
 

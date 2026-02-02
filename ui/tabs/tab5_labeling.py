@@ -160,28 +160,6 @@ def json_file_to_yolo_seg_txt(json_f, image_f, out_name="edited.txt"):
 
 def build_tab5_labeling():
     ''' UI 컴포넌트 관련 '''
-    # gr.HTML("""
-    #     <style>
-    #     /* Accordion 전체 높이 제한 */
-    #     #optional-accordion {
-    #         max-height: 290px;      /* 왼쪽 영역 높이에 맞게 조절 */
-    #         overflow: hidden;
-    #     }
-    #
-    #     /* Accordion 내부만 스크롤 */
-    #     #optional-accordion .wrap {
-    #         max-height: 280px;
-    #         overflow-y: auto;
-    #         padding-right: 6px;
-    #     }
-    #     </style>
-    #     """)
-    #
-    # ALL_JS = load_all_js("./json")
-    #
-    # with gr.Tab("5. Labeling"):
-    #     gr.HTML(f"<script>{ALL_JS}</script>")
-
     with gr.Row():
         with gr.Column(scale=1):
             with gr.Row():
@@ -260,16 +238,9 @@ def build_tab5_labeling():
         with gr.Column(scale=1):
             js_log_box = build_log_textbox(label="JS Log", lines=13)
 
-    gr.HTML("""
-    <div style="display:flex; justify-content:center; width:100%; margin-top:10px;">
-        <canvas id="edit_canvas" width="800" height="600" style="border:1px solid white;"></canvas>
-    </div>
-    """)
-
-    # Load JSON + Attach JS Editor
+    # save json / txt
     load_out = gr.JSON(visible=False)
-
-    # save json (기존 기능 유지: 파일로 저장)
+    gr.Markdown("### [파일 저장하기]")
     with gr.Row():
         save_name = gr.Textbox(
             label="Save as (filename.json)",
@@ -279,8 +250,6 @@ def build_tab5_labeling():
             label="Export as (filename.txt)",
             value="edited.txt"
         )
-
-    # ✅ NEW: Export YOLO TXT (파일 기반 변환)
     with gr.Row():
         save_json_btn = gr.DownloadButton(
             label="Save JSON",
@@ -291,8 +260,6 @@ def build_tab5_labeling():
             value=None,  # 처음엔 없음
             visible=True
         )
-
-
 
     ''' 버튼 클릭 리스너 및 ui 관련 함수 '''
 
