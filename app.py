@@ -9,7 +9,7 @@ from ui.tabs.tab1_viewer import build_tab1_viewer
 from ui.tabs.tab2_dataset import build_tab2_dataset
 from ui.tabs.tab3_train_monitor import build_tab3_train_monitor
 from ui.tabs.tab4_perf_monitor import build_tab4_perf_monitor
-from ui.tabs.tab5_labeling import build_tab5_labeling
+from ui.tabs.tab5_main import build_tab5
 from ui.tabs.tab6_compare import build_tab6_compare
 from ui.tabs.tab7_inference import build_tab7_inference
 from core.yolo_train import YoloTrainer
@@ -48,7 +48,7 @@ def create_demo():
             build_tab2_dataset()
             tab3 = build_tab3_train_monitor(trainer=trainer)
             build_tab4_perf_monitor()
-            build_tab5_labeling()
+            build_tab5()
             build_tab6_compare()
             tab7 = build_tab7_inference()
 
