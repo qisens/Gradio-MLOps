@@ -1,7 +1,7 @@
 // console.log("🔥 5_js_editor loaded:");
 
-window.js_editor = function (p) {
-    console.log("🔥 JS Editor START @ js_editor");
+window.js_editor2 = function (p) {
+    console.log("🔥 JS Editor START @ js_editor 22222222");
     js_log("js_editor called");
     if (!p) {
         console.log("❌ p is undefined");
@@ -14,7 +14,7 @@ window.js_editor = function (p) {
     if (!res || res.status !== "ok") return p;
 
     // 🔥 상태 연결
-    window.pts_list = res.pts_list;
+    window.pts_list2 = res.pts_list;
     window.COLORS = res.colors;
     window.CLASS_NAMES = res.class_names;
 
@@ -23,7 +23,7 @@ window.js_editor = function (p) {
 
 
     // function sync_json() {
-    //     const out_annotations = window.pts_list.map(obj => ({
+    //     const out_annotations = window.pts_list2.map(obj => ({
     //         segmentation: [obj.pts.flatMap(pt => [pt.x, pt.y])],
     //         class_id: obj.class_id
     //     }));
@@ -63,7 +63,7 @@ window.js_editor = function (p) {
 
     window.get_current_json = function () {
         return JSON.stringify({
-            annotations: window.pts_list.map(obj => ({
+            annotations: window.pts_list2.map(obj => ({
                 segmentation: [obj.pts.flatMap(pt => [pt.x, pt.y])],
                 class_id: obj.class_id
             }))
@@ -76,11 +76,11 @@ window.js_editor = function (p) {
     // ============================
     // DRAW FUNCTION
     // ============================
-    function draw_all() {
+    function draw_all2() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
 
-        window.pts_list.forEach((obj) => {
+        window.pts_list2.forEach((obj) => {
             let pts = obj.pts;
             let cid = obj.class_id;
             let color = COLORS[cid % COLORS.length];
@@ -122,11 +122,11 @@ window.js_editor = function (p) {
             ctx.fillText(class_name, cx + 10, cy + 10);
         });
 
-        window.draw_all = draw_all;
+        window.draw_all2 = draw_all2;
 
 
         // save JSON
-        let out_annotations = window.pts_list.map(obj => {
+        let out_annotations = window.pts_list2.map(obj => {
             let arr = obj.pts.map(pt => [pt.x, pt.y]).flat();
             return { segmentation: [arr], class_id: obj.class_id };
         });
@@ -187,7 +187,7 @@ window.js_editor = function (p) {
     img.onload = () => {
         canvas.width = img.width;
         canvas.height = img.height;
-        draw_all();
+        draw_all2();
     };
 
 
@@ -203,19 +203,19 @@ window.js_editor = function (p) {
 
             // 🟢 현재 상태를 history에 저장해야 ctrl+Z가 작동함
             history.push(JSON.stringify({
-                pts_list: structuredClone(window.pts_list),
+                pts_list: structuredClone(window.pts_list2),
                 new_polygon: structuredClone(window.new_polygon),
                 add_mode: window.add_mode
             }));
             redo_stack = [];
 
             window.new_polygon.push({ x: mx, y: my });
-            draw_all();
+            draw_all2();
             return;
         }
         // Save previous state
         history.push(JSON.stringify({
-            pts_list: structuredClone(window.pts_list),
+            pts_list: structuredClone(window.pts_list2),
             new_polygon: structuredClone(new_polygon),
             add_mode: add_mode
         }));
@@ -236,27 +236,27 @@ window.js_editor = function (p) {
 
                     // undo 저장
                     history.push(JSON.stringify({
-                        pts_list: window.pts_list,
+                        pts_list: window.pts_list2,
                         new_polygon: new_polygon
                     }));
                     redo_stack = [];
 
                     new_polygon.splice(i, 1);
-                    draw_all();
+                    draw_all2();
                     return;
                 }
             }
 
 
-            window.pts_list.forEach((obj, pidx) => {
+            window.pts_list2.forEach((obj, pidx) => {
                 obj.pts.forEach((pt, idx) => {
                     if (Math.hypot(pt.x - mx, pt.y - my) < 10) {
                         // Undo 기록
-                        history.push(JSON.stringify(window.pts_list));
+                        history.push(JSON.stringify(window.pts_list2));
                         redo_stack = [];
 
                         obj.pts.splice(idx, 1);
-                        draw_all();
+                        draw_all2();
                     }
                 });
             });
@@ -290,7 +290,7 @@ window.js_editor = function (p) {
             let bestPoly = null;
             let bestDist = Infinity;
 
-            window.pts_list.forEach(poly => {
+            window.pts_list2.forEach(poly => {
                 let pts = poly.pts;
                 let minEdgeDist = Infinity;
 
@@ -358,15 +358,15 @@ window.js_editor = function (p) {
         // 디버그 표시
             window.debug_poly = targetPoly;
             window.debug_edge = { a: edgeInfo.a, b: edgeInfo.b };
-            draw_all();  // 디버그 오버레이 먼저 보여주기
+            draw_all2();  // 디버그 오버레이 먼저 보여주기
        // threshold 조건
 
         if (edgeInfo.dist < 10) {
-            history.push(JSON.stringify(window.pts_list));
+            history.push(JSON.stringify(window.pts_list2));
             redo_stack = [];
 
             targetPoly.pts.splice(edgeInfo.index + 1, 0, { x: mx, y: my });
-            draw_all();
+            draw_all2();
         }
 
 
@@ -375,7 +375,7 @@ window.js_editor = function (p) {
 
         // (C) EXISTING DRAG POINT CODE
         dragging = { poly: null, idx: null };
-        window.pts_list.forEach((obj, pidx) => {
+        window.pts_list2.forEach((obj, pidx) => {
             obj.pts.forEach((pt, idx) => {
                 if (Math.hypot(pt.x - mx, pt.y - my) < 10) {
                     dragging.poly = pidx;
@@ -390,16 +390,16 @@ window.js_editor = function (p) {
     if (e.ctrlKey && e.key === "z") {
         if (history.length > 0) {
             redo_stack.push(JSON.stringify({
-                pts_list: structuredClone(window.pts_list),
+                pts_list: structuredClone(window.pts_list2),
                 new_polygon: structuredClone(new_polygon),
                 add_mode: add_mode
             }));
 
             let prev = JSON.parse(history.pop());
-            window.pts_list = prev.pts_list;
+            window.pts_list2 = prev.pts_list;
             new_polygon = prev.new_polygon;
             add_mode = prev.add_mode;
-            draw_all();
+            draw_all2();
         }
     }
 
@@ -409,7 +409,7 @@ window.js_editor = function (p) {
 
             // 현재 상태를 history에 저장 (되돌리기 가능하도록)
             history.push(JSON.stringify({
-                pts_list: structuredClone(window.pts_list),
+                pts_list: structuredClone(window.pts_list2),
                 new_polygon: structuredClone(new_polygon),
                 add_mode: add_mode
             }));
@@ -418,11 +418,11 @@ window.js_editor = function (p) {
             let next = JSON.parse(redo_stack.pop());
 
             // 상태 복원
-            window.pts_list = structuredClone(next.pts_list);
+            window.pts_list2 = structuredClone(next.pts_list);
             new_polygon = structuredClone(next.new_polygon ?? []);
             add_mode = next.add_mode ?? false;
 
-            draw_all();
+            draw_all2();
         }
     }
 
@@ -430,15 +430,15 @@ window.js_editor = function (p) {
     canvas.onmousemove = (e) => {
         if (dragging.poly === null) return;
         const rect = canvas.getBoundingClientRect();
-        window.pts_list[dragging.poly].pts[dragging.idx].x = e.clientX - rect.left;
-        window.pts_list[dragging.poly].pts[dragging.idx].y = e.clientY - rect.top;
+        window.pts_list2[dragging.poly].pts[dragging.idx].x = e.clientX - rect.left;
+        window.pts_list2[dragging.poly].pts[dragging.idx].y = e.clientY - rect.top;
 
-        draw_all();
+        draw_all2();
     };
     canvas.onmouseup = () => {
         dragging.poly = null;
         dragging.idx = null;
-        draw_all();   // ← 이 줄이 핵심!!
+        draw_all2();   // ← 이 줄이 핵심!!
     };
 
 
@@ -451,7 +451,7 @@ window.js_editor = function (p) {
         window.add_mode = false;
 
         // 새로운 polygon 추가
-        window.pts_list.push({
+        window.pts_list2.push({
             pts: window.new_polygon,
             class_id: class_id
         });
@@ -460,11 +460,11 @@ window.js_editor = function (p) {
         window.new_polygon = [];
 
         // 다시 그리기
-        if (window.draw_all) window.draw_all();
+        if (window.draw_all2) window.draw_all2();
 
         // JSON 반환
         // return JSON.stringify({
-        //     annotations: window.pts_list.map(obj => ({
+        //     annotations: window.pts_list2.map(obj => ({
         //         segmentation: [obj.pts.flatMap(pt => [pt.x, pt.y])],
         //         class_id: obj.class_id
         //     }))
@@ -550,27 +550,28 @@ console.log("[OK] save_json_via_filepicker loaded:", typeof window.save_json_via
 window.reset_editor = function () {
     console.log("[editor] reset");
 
-    // 핵심 상태
-    window.pts_list = [];
-    window.new_polygon = [];
-    window.add_mode = false;
-
-    // undo / redo
-    history = [];
-    redo_stack = [];
-
-    // debug
-    window.debug_click = null;
-    window.debug_poly = null;
-    window.debug_edge = null;
-
-    // canvas
     const canvas = document.getElementById("edit_canvas");
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-};
 
+    const ctx = canvas.getContext("2d");
+
+    // 1. canvas clear
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 2. 내부 상태 초기화 (네 editor에 맞게)
+    window.__EDITOR_STATE__ = {
+        image: null,
+        polygons: [],
+        activePolygon: null,
+    };
+
+    // 3. undo / redo 스택 비우기
+    window.__UNDO_STACK__ = [];
+    window.__REDO_STACK__ = [];
+
+    // 필요하면 mode도 초기화
+    window.__ADD_MODE__ = false;
+};
 
 
 

@@ -229,7 +229,7 @@ def save_current_overwrite(cur_index, file_list, case_paths, current_json):
     return f"✅ Saved: {json_path.name}, {txt_path.name}"
 
 
-def build_tab5_labeling_folder():
+def build_tab5_labeling_folder(current_tab: gr.State):
     ''' UI 컴포넌트 관련 '''
     with gr.Row():
         with gr.Column(scale=1):
@@ -265,12 +265,12 @@ def build_tab5_labeling_folder():
                     <li><b>Ctrl + Click</b> : 포인트 삭제</li>
                     <li><b>Shift + Click</b> : 포인트 추가</li>
                     <li><b>Ctrl + Z / Y</b> : Undo / Redo</li>
-                    <li><b>New Polygon / Finish Polygon 버튼</b> : 새로운 폴리곤 추가 / 종료</li>
                 </ul>
             </div>
             """)
 
             # NEW polygon controls : Class ID + 버튼 영역
+            gr.HTML("새로운 폴리곤 추가 버튼을 눌러 레이블링을 추가하고, 레이블링 완료 후 finish 버튼을 눌러주세요.")
             with gr.Row():
                 with gr.Column(scale=2):
                     new_class = gr.Dropdown(
@@ -288,10 +288,11 @@ def build_tab5_labeling_folder():
                     add_mode_btn = gr.Button("➕ New Polygon")
                     finish_poly_btn = gr.Button("✔ Finish Polygon")
 
-    save_btn = gr.Button(
-        "💾 Save (JSON + TXT overwrite)",
-        size="lg"
-    )
+            gr.HTML("레이블링 수정 완료 후 저장하기 버튼을 눌러주세요")
+            save_btn = gr.Button(
+                "💾 Save (JSON + TXT overwrite)",
+                size="lg"
+            )
 
     gr.Markdown("### 파일 이동하기")
     with gr.Row():
@@ -300,14 +301,15 @@ def build_tab5_labeling_folder():
 
         next_btn = gr.Button("Next ➡")
 
-    # Load JSON + Attach JS Editor
+
+    ''' 상태 관련 '''
     load_out = gr.JSON(visible=False)
-
-    ''' 버튼 클릭 리스너 및 ui 관련 함수 '''
-
     case_paths = gr.State({})
     file_list = gr.State([])
     cur_index = gr.State(0)
+
+
+    ''' 버튼 클릭 리스너 및 ui 관련 함수 '''
 
     def build_class_dropdown(classes_file):
         names, colors = load_classes_txt(classes_file)
@@ -417,4 +419,15 @@ def build_tab5_labeling_folder():
         outputs=[js_log_box]
     )
 
+    def reset_folder_state(tab_name):
+        if tab_name == "folder":
+            return {}, [], 0, None
+        else:
+            # 아무 변화 없게 현재 상태 그대로 반환
+            return gr.update(), gr.update(), gr.update(), gr.update()
 
+    current_tab.change(
+        fn=reset_folder_state,
+        inputs=current_tab,
+        outputs=[case_paths, file_list, cur_index, load_out],
+    )

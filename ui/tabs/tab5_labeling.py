@@ -158,7 +158,7 @@ def json_file_to_yolo_seg_txt(json_f, image_f, out_name="edited.txt"):
     return out_path
 
 
-def build_tab5_labeling():
+def build_tab5_labeling(current_tab: gr.State):
     ''' UI 컴포넌트 관련 '''
     with gr.Row():
         with gr.Column(scale=1):
@@ -239,7 +239,6 @@ def build_tab5_labeling():
             js_log_box = build_log_textbox(label="JS Log", lines=13)
 
     # save json / txt
-    load_out = gr.JSON(visible=False)
     gr.Markdown("### [파일 저장하기]")
     with gr.Row():
         save_name = gr.Textbox(
@@ -262,6 +261,8 @@ def build_tab5_labeling():
         )
 
     ''' 버튼 클릭 리스너 및 ui 관련 함수 '''
+
+    load_out = gr.JSON(visible=False)
 
     def build_class_dropdown(classes_file):
         names, colors = load_classes_txt(classes_file)
@@ -347,4 +348,16 @@ def build_tab5_labeling():
         fn=json_file_to_yolo_seg_txt,
         inputs=[load_json_file, image_file, export_txt_name],
         outputs=export_txt_btn
+    )
+
+    def reset_single_state(tab_name):
+        if tab_name == "single":
+            return None, None, None
+        else:
+            return gr.update(), gr.update(), gr.update()
+
+    current_tab.change(
+        fn=reset_single_state,
+        inputs=current_tab,
+        outputs=[load_out, image_file, load_json_file],
     )
