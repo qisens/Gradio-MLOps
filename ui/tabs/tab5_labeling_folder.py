@@ -1,4 +1,4 @@
-# ui/tabs/tab5_labeling.py
+# ui/tabs/tab5_labeling_folder.py
 import time, json, base64
 import os
 import cv2

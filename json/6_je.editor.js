@@ -38,6 +38,7 @@ window.js_editor = function (p) {
     window.debug_click = null;     // 클릭 지점
     window.debug_poly = null;      // 선택된 폴리곤
     window.debug_edge = null;      // 선택된 엣지 {a:{x,y}, b:{x,y}}
+    window.selected_poly = null;   //🟥전역 상태 추가: 현재 선택된 폴리곤 index(없으면 null)
 
     // ========= UNDO/REDO STACK =========
     let history = [];
@@ -80,8 +81,11 @@ window.js_editor = function (p) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
 
-        window.pts_list.forEach((obj) => {
+        window.pts_list.forEach((obj, idx) => {
             let pts = obj.pts;
+            //🟥폴리곤 버그 방지 코드
+            if (!pts || pts.length < 3) return;
+
             let cid = obj.class_id;
             let color = COLORS[cid % COLORS.length];
             let class_name = `${cid}: ${window.CLASS_NAMES[cid] ?? ("class_" + cid)}`;
@@ -90,10 +94,11 @@ window.js_editor = function (p) {
 
             // polygon
             ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
+            ctx.lineWidth = (window.selected_poly === idx) ?4 : 2;
 
             ctx.beginPath();
             ctx.moveTo(pts[0].x, pts[0].y);
+            //🟥선택된 폴리곤 하이라이트
             for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
             ctx.closePath();
             ctx.stroke();
@@ -134,16 +139,16 @@ window.js_editor = function (p) {
         // output_box.dispatchEvent(new Event("input", { bubbles: true }));
 
         // draw new polygon (in progress)
-        if (add_mode && new_polygon.length > 0) {
+        if (window.add_mode && window.new_polygon.length > 0) {
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(new_polygon[0].x, new_polygon[0].y);
-            for (let i = 1; i < new_polygon.length; i++)
-                ctx.lineTo(new_polygon[i].x, new_polygon[i].y);
+            ctx.moveTo(window.new_polygon[0].x, window.new_polygon[0].y);
+            for (let i = 1; i < window.new_polygon.length; i++)
+                ctx.lineTo(window.new_polygon[i].x, window.new_polygon[i].y);
             ctx.stroke();
 
-            new_polygon.forEach(pt=>{
+            window.new_polygon.forEach(pt=>{
                 ctx.beginPath();
                 ctx.arc(pt.x, pt.y, 5, 0, Math.PI*2);
                 ctx.fillStyle = "white";
@@ -194,6 +199,33 @@ window.js_editor = function (p) {
     // ============================
     // DRAG EVENTS
     // ============================
+
+    //🟥(mx,my)클릭 좌표가 폴리곤 내부인지 검사 > 내부면 True 반환
+    function pointInPoly(x, y, pts) {
+        let inside = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+            const xi = pts[i].x, yi = pts[i].y;
+            const xj = pts[j].x, yj = pts[j].y;
+
+            const intersect =
+                ((yi > y) !== (yj > y)) &&
+                (x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-9) + xi);
+
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+    //🟥클릭 지점이 포함된 폴리곤의 index 찾기
+    function findPolyIndexAt(mx, my) {
+        // 위에 그려진 폴리곤이 우선 선택되도록 뒤에서부터 탐색
+        for (let i = window.pts_list.length - 1; i >= 0; i--) {
+            const pts = window.pts_list[i].pts;
+            if (!pts || pts.length < 3) continue;   //점 부족 폴리곤은 무시
+            if (pointInPoly(mx, my, pts)) return i; //내부면 해당 폴리곤 index 리턴
+        }
+        return -1;
+    }
+
     canvas.onmousedown = (e) => {
 
         if (window.add_mode) {
@@ -216,8 +248,8 @@ window.js_editor = function (p) {
         // Save previous state
         history.push(JSON.stringify({
             pts_list: structuredClone(window.pts_list),
-            new_polygon: structuredClone(new_polygon),
-            add_mode: add_mode
+            new_polygon: structuredClone(window.new_polygon),
+            add_mode: window.add_mode
         }));
 
         redo_stack = [];
@@ -226,22 +258,33 @@ window.js_editor = function (p) {
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
+        //🟥클릭 시 폴리곤 선택(수정키 없이)
+        if (!e.ctrlKey && !e.shiftKey && !e.altKey) {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            const pidx = findPolyIndexAt(mx, my);
+            // 선택된 폴리곤 저장
+            window.selected_poly = (pidx !== -1) ? pidx : null;
+            draw_all();
+        }
+
         // CTRL + CLICK → 점 삭제
         if (e.ctrlKey) {
-
             // 🔥 new_polygon 삭제 먼저 체크
-            for (let i = 0; i < new_polygon.length; i++) {
-                let pt = new_polygon[i];
+            for (let i = 0; i < window.new_polygon.length; i++) {
+                let pt = window.new_polygon[i];
                 if (Math.hypot(pt.x - mx, pt.y - my) < 10) {
 
                     // undo 저장
                     history.push(JSON.stringify({
                         pts_list: window.pts_list,
-                        new_polygon: new_polygon
+                        new_polygon: window.new_polygon
                     }));
                     redo_stack = [];
 
-                    new_polygon.splice(i, 1);
+                    window.new_polygon.splice(i, 1);
                     draw_all();
                     return;
                 }
@@ -368,8 +411,6 @@ window.js_editor = function (p) {
             targetPoly.pts.splice(edgeInfo.index + 1, 0, { x: mx, y: my });
             draw_all();
         }
-
-
             return;
         }
 
@@ -386,8 +427,26 @@ window.js_editor = function (p) {
     };
 
     document.addEventListener("keydown", (e) => {
-    // UNDO
-    if (e.ctrlKey && e.key === "z") {
+        //🟥DELETE → 선택된 폴리곤 삭제
+        if (e.key === "Delete" && window.selected_poly !== null) {
+            //Undo를위한 현재 상태 저장
+            history.push(JSON.stringify({
+                pts_list: structuredClone(window.pts_list),
+                new_polygon: structuredClone(window.new_polygon),
+                add_mode: window.add_mode
+            }));
+            redo_stack = [];
+
+            //실제 폴리곤 삭제
+            window.pts_list.splice(window.selected_poly, 1);
+            //선택 상태 초기화
+            window.selected_poly = null;
+            //화면 다시 그리기
+            draw_all();
+        }
+
+        // UNDO
+        if (e.ctrlKey && e.key === "z") {
         if (history.length > 0) {
             redo_stack.push(JSON.stringify({
                 pts_list: structuredClone(window.pts_list),
@@ -546,7 +605,6 @@ window.save_json_via_filepicker = async function (suggestedName, jsonText) {
 
 console.log("[OK] save_json_via_filepicker loaded:", typeof window.save_json_via_filepicker);
 
-
 window.reset_editor = function () {
     console.log("[editor] reset");
 
@@ -570,8 +628,3 @@ window.reset_editor = function () {
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 };
-
-
-
-
-
