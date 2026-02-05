@@ -41,8 +41,8 @@ window.js_editor = function (p) {
     window.selected_poly = null;   //🟥전역 상태 추가: 현재 선택된 폴리곤 index(없으면 null)
 
     // ========= UNDO/REDO STACK =========
-    let history = [];
-    let redo_stack = [];
+    window.history_stack = [];
+    window.redo_stack = [];
 
     // ============================
     // To enable add polygon mode
@@ -234,25 +234,25 @@ window.js_editor = function (p) {
             const my = e.clientY - rect.top;
 
             // 🟢 현재 상태를 history에 저장해야 ctrl+Z가 작동함
-            history.push(JSON.stringify({
+            window.history_stack.push(JSON.stringify({
                 pts_list: structuredClone(window.pts_list),
                 new_polygon: structuredClone(window.new_polygon),
                 add_mode: window.add_mode
             }));
-            redo_stack = [];
+            window.redo_stack = [];
 
             window.new_polygon.push({ x: mx, y: my });
             draw_all();
             return;
         }
         // Save previous state
-        history.push(JSON.stringify({
+        window.history_stack.push(JSON.stringify({
             pts_list: structuredClone(window.pts_list),
             new_polygon: structuredClone(window.new_polygon),
             add_mode: window.add_mode
         }));
 
-        redo_stack = [];
+        window.redo_stack = [];
 
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
@@ -268,6 +268,14 @@ window.js_editor = function (p) {
             // 선택된 폴리곤 저장
             window.selected_poly = (pidx !== -1) ? pidx : null;
             draw_all();
+
+            // 폴리곤 선택해서 클래스 수정하려고 추가
+            if (window.selected_poly !== null) {
+                const cls = window.pts_list[window.selected_poly].class_id;
+                window.dispatchEvent(new CustomEvent("poly_selected", {
+                    detail: { class_id: cls }
+                }));
+            }
         }
 
         // CTRL + CLICK → 점 삭제
@@ -278,11 +286,11 @@ window.js_editor = function (p) {
                 if (Math.hypot(pt.x - mx, pt.y - my) < 10) {
 
                     // undo 저장
-                    history.push(JSON.stringify({
+                    window.history_stack.push(JSON.stringify({
                         pts_list: window.pts_list,
                         new_polygon: window.new_polygon
                     }));
-                    redo_stack = [];
+                    window.redo_stack = [];
 
                     window.new_polygon.splice(i, 1);
                     draw_all();
@@ -295,8 +303,8 @@ window.js_editor = function (p) {
                 obj.pts.forEach((pt, idx) => {
                     if (Math.hypot(pt.x - mx, pt.y - my) < 10) {
                         // Undo 기록
-                        history.push(JSON.stringify(window.pts_list));
-                        redo_stack = [];
+                        window.history_stack.push(JSON.stringify(window.pts_list));
+                        window.redo_stack = [];
 
                         obj.pts.splice(idx, 1);
                         draw_all();
@@ -405,8 +413,8 @@ window.js_editor = function (p) {
        // threshold 조건
 
         if (edgeInfo.dist < 10) {
-            history.push(JSON.stringify(window.pts_list));
-            redo_stack = [];
+            window.history_stack.push(JSON.stringify(window.pts_list));
+            window.redo_stack = [];
 
             targetPoly.pts.splice(edgeInfo.index + 1, 0, { x: mx, y: my });
             draw_all();
@@ -430,12 +438,12 @@ window.js_editor = function (p) {
         //🟥DELETE → 선택된 폴리곤 삭제
         if (e.key === "Delete" && window.selected_poly !== null) {
             //Undo를위한 현재 상태 저장
-            history.push(JSON.stringify({
+            window.history_stack.push(JSON.stringify({
                 pts_list: structuredClone(window.pts_list),
                 new_polygon: structuredClone(window.new_polygon),
                 add_mode: window.add_mode
             }));
-            redo_stack = [];
+            window.redo_stack = [];
 
             //실제 폴리곤 삭제
             window.pts_list.splice(window.selected_poly, 1);
@@ -447,14 +455,14 @@ window.js_editor = function (p) {
 
         // UNDO
         if (e.ctrlKey && e.key === "z") {
-        if (history.length > 0) {
-            redo_stack.push(JSON.stringify({
+        if (window.history_stack.length > 0) {
+            window.redo_stack.push(JSON.stringify({
                 pts_list: structuredClone(window.pts_list),
                 new_polygon: structuredClone(new_polygon),
                 add_mode: add_mode
             }));
 
-            let prev = JSON.parse(history.pop());
+            let prev = JSON.parse(window.history_stack.pop());
             window.pts_list = prev.pts_list;
             new_polygon = prev.new_polygon;
             add_mode = prev.add_mode;
@@ -464,17 +472,17 @@ window.js_editor = function (p) {
 
 // REDO
     if (e.ctrlKey && e.key === "y") {
-        if (redo_stack.length > 0) {
+        if (window.redo_stack.length > 0) {
 
             // 현재 상태를 history에 저장 (되돌리기 가능하도록)
-            history.push(JSON.stringify({
+            window.history_stack.push(JSON.stringify({
                 pts_list: structuredClone(window.pts_list),
                 new_polygon: structuredClone(new_polygon),
                 add_mode: add_mode
             }));
 
             // redo stack에서 이전 상태 꺼내기
-            let next = JSON.parse(redo_stack.pop());
+            let next = JSON.parse(window.redo_stack.pop());
 
             // 상태 복원
             window.pts_list = structuredClone(next.pts_list);
@@ -544,6 +552,32 @@ window.js_editor = function (p) {
     };
 }
 
+// 선택된 폴리곤의 클래스 변경하려고 추가
+window.change_selected_poly_class = function(new_class_id) {
+    console.log("class 변경");
+
+    if (window.selected_poly === null) {
+        toast("⚠ 선택된 폴리곤이 없습니다");
+        return;
+    }
+
+    // undo 기록
+    window.history_stack.push(JSON.stringify({
+        pts_list: structuredClone(window.pts_list),
+        new_polygon: structuredClone(window.new_polygon),
+        add_mode: window.add_mode
+    }));
+    window.redo_stack = [];
+
+    window.pts_list[window.selected_poly].class_id = Number(new_class_id);
+    if (window.draw_all) window.draw_all();
+    toast("✅ Class updated");
+
+    console.log("✅ class updated",
+        window.selected_poly,
+        window.pts_list[window.selected_poly]
+    );
+};
 
 // --------------------------------------------------
 // 파일탐색기(저장 대화상자)로 JSON 저장
@@ -612,10 +646,6 @@ window.reset_editor = function () {
     window.pts_list = [];
     window.new_polygon = [];
     window.add_mode = false;
-
-    // undo / redo
-    history = [];
-    redo_stack = [];
 
     // debug
     window.debug_click = null;

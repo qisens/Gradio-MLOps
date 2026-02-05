@@ -265,6 +265,7 @@ def build_tab5_labeling_folder(current_tab: gr.State):
                     <li><b>Ctrl + Click</b> : 포인트 삭제</li>
                     <li><b>Shift + Click</b> : 포인트 추가</li>
                     <li><b>Ctrl + Z / Y</b> : Undo / Redo</li>
+                    <li><b>Delete</b> : 폴리곤 선택 후 Delete 버튼으로 한 레이블 전체 삭제 가능</li>
                 </ul>
             </div>
             """)
@@ -287,6 +288,17 @@ def build_tab5_labeling_folder(current_tab: gr.State):
                 with gr.Column(scale=1):
                     add_mode_btn = gr.Button("➕ New Polygon")
                     finish_poly_btn = gr.Button("✔ Finish Polygon")
+
+            gr.HTML("레이블링 클래스 변경하기 - 폴리곤 선택 후 변경할 클래스를 선택하고 버튼을 클릭하세요.")
+            with gr.Row():
+                with gr.Column(scale=2):
+                    selected_class = gr.Dropdown(
+                        choices=[],
+                        label="Selected Polygon Class",
+                        value=None
+                    )
+                with gr.Column(scale=1):
+                    apply_class_btn = gr.Button("🔄 Apply Class")
 
             gr.HTML("레이블링 수정 완료 후 저장하기 버튼을 눌러주세요")
             save_btn = gr.Button(
@@ -325,6 +337,12 @@ def build_tab5_labeling_folder(current_tab: gr.State):
         outputs=[new_class]
     )
 
+    classes_txt_file.change(
+        fn=build_class_dropdown,
+        inputs=[classes_txt_file],
+        outputs=[selected_class]
+    )
+
     def update_current_file_text(cur_index, file_list):
         if not file_list:
             return ""
@@ -360,6 +378,14 @@ def build_tab5_labeling_folder(current_tab: gr.State):
         inputs=new_class,
         outputs=None,
         js="(cls_value) => finish_poly(cls_value)"
+    )
+
+    # 레이블 된 폴리곤 클래스 수정
+    apply_class_btn.click(
+        fn=None,
+        inputs=selected_class,
+        outputs=None,
+        js="(cls) => window.change_selected_poly_class(cls)"
     )
 
     # 이미지 이전/다음 버튼 클릭
