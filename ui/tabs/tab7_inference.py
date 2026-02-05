@@ -42,6 +42,11 @@ def build_inference_tab(
                 weights_dropdown = weight_selector["dropdown"]
                 weights_map_state = weight_selector["map_state"]
                 weights_dir_tb = weight_selector["path_output"]
+                pt_dropdown = gr.Dropdown(
+                    label="pt 파일 선택",
+                    choices=[],
+                    value=None,
+                )
 
             with gr.Accordion(label="추론 파라미터 선택", open=False):
                 eval_imgsz_slider = gr.Slider(256, 2048, step=64, value=640, label="imgsz")
@@ -82,13 +87,13 @@ def build_inference_tab(
     ''' state '''
     server_img_dir_state = gr.State()  # 원본 이미지 폴더
     server_infer_dir_state = gr.State()  # inference 결과 폴더
-
     viewer_state = gr.State()  # tab1의 SourceState
 
     ''' event '''
     def infer_folder(
             img_dir: str,
             weights_dir: str,
+            pt_name: str,
             imgsz: int,
             conf: float,
             iou: float,
@@ -100,7 +105,9 @@ def build_inference_tab(
             yield "❌ 이미지 폴더가 유효하지 않습니다.", "", "", "❌"
             return
 
-        model_path = os.path.join(weights_dir, "best.pt")
+        # model_path = os.path.join(weights_dir, "best.pt")
+        model_path = os.path.join(weights_dir, pt_name)
+        print("model_path: ", model_path)
         if not os.path.exists(model_path):
             yield "❌ best.pt가 존재하지 않습니다.", "", "", "❌"
             return
@@ -171,13 +178,27 @@ def build_inference_tab(
         dir_name = f"{dataset_name}__{train_name}__{model_name}"
 
         save_root = os.path.join(project_root, "7_inference", "inf_results", dir_name)
-        img_save_dir = os.path.join(save_root, "images")
+        img_save_dir = os.path.join(save_root, "result_images")
         txt_save_dir = os.path.join(save_root, "labels")
 
         os.makedirs(img_save_dir, exist_ok=True)
         os.makedirs(txt_save_dir, exist_ok=True)
 
         return img_save_dir, txt_save_dir
+
+    def list_pt_files(training_dir: str):
+        weights_dir = training_dir
+        print("weights_dir : ", weights_dir)
+        if not os.path.isdir(weights_dir):
+            return gr.update(choices=[], value=None)
+
+        pts = sorted([
+            f for f in os.listdir(weights_dir)
+            if f.endswith(".pt")
+        ])
+
+        default = "best.pt" if "best.pt" in pts else (pts[0] if pts else None)
+        return gr.update(choices=pts, value=default)
 
     def init_infer_view(orig_dir: str, infer_dir: str):
         imgs = sorted([
@@ -399,11 +420,18 @@ def build_inference_tab(
         return f"**총 {len(state['bad_images'])}개 선택됨**\n\n{lines}"
 
     ''' event 등록 '''
+    weights_dir_tb.change(
+        fn=list_pt_files,
+        inputs=[weights_dir_tb],
+        outputs=[pt_dropdown],
+    )
+
     btn_infer.click(
         fn=infer_folder,
         inputs=[
             eval_img_path_tb,
             weights_dir_tb,
+            pt_dropdown,
             eval_imgsz_slider,
             eval_conf_tb,
             eval_iou_tb,
