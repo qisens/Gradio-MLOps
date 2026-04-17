@@ -1,7 +1,7 @@
 # app.py
 import gradio as gr
 
-from core.config import PROJECT_ROOT, YOLO_CLI
+from core.config import PROJECT_ROOT, YOLO_CLI, RUNS_DIR
 from core.yolo_train import YoloTrainer
 
 from ui.shared.js_assets import load_all_js
@@ -25,7 +25,7 @@ def create_demo():
             build_tab3_train_monitor(trainer=trainer)
             build_tab4_perf_monitor()
             build_tab5_labeling()
-            build_tab6_compare()
+            build_tab6_compare(PROJECT_ROOT, RUNS_DIR)
 
     return demo, all_js
     #return demo
@@ -33,7 +33,7 @@ def create_demo():
 if __name__ == "__main__":
     demo, ALL_JS = create_demo()
     #demo = create_demo()
-    demo.launch(js=ALL_JS, share=True)
-    #demo.launch(js=ALL_JS)
+    # demo.launch(js=ALL_JS, share=True)
+    demo.launch(js=ALL_JS)
     #demo.launch(share=True)
     #demo.launch()

@@ -211,9 +211,9 @@ def build_compare_tab(
     new_btn_refresh.click(fn=lambda p: _refresh_browser(p, "model"), inputs=[new_cur], outputs=[new_cur, new_dirs, new_files])
 
 
-def build_tab6_compare():
+def build_tab6_compare(img_dir, model_dir):
     with gr.Tab("6. 모델 추론결과 비교"):
         build_compare_tab(
-            default_img_dir="/home/gpuadmin/seongje_maixcam/yolo11_seg_dataset/images/val",
-            default_model_dir="/home/gpuadmin/seongje_gradio2/test_yolo_project/runs/segment",
+            default_img_dir=img_dir,
+            default_model_dir=model_dir,
         )

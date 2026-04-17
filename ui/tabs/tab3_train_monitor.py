@@ -4,7 +4,7 @@ import gradio as gr
 
 from core.config import (
     PROJECT_ROOT, RUNS_DIR, METRIC_COLUMNS, LOSS_COLUMNS,
-    UPLOAD_DATA_DIR, UPLOAD_MODEL_DIR
+    UPLOAD_TRAINING_INFO_DIR
 )
 from core.utils_csv import _build_runs_map, _on_run_change, _file_to_path
 from core.yolo_train import run_epoch_eval_manual
@@ -13,7 +13,6 @@ from core.train_monitor_service import (
     refresh_6plots_compare, prev_page, next_page,
     build_epoch_conf_monitor_ui
 )
-
 def build_tab3_train_monitor(trainer):
     with gr.Tab("3. Train Monitor"):
         with gr.Row():
@@ -27,8 +26,8 @@ def build_tab3_train_monitor(trainer):
                 model_pt_file = gr.File(label="모델(.pt) 업로드", file_types=[".pt"], file_count="single")
                 model_pt_path = gr.Textbox(label="서버 저장 경로 (model.pt)", interactive=False)
 
-                data_yaml_file.change(fn=lambda f: save_uploaded_file(f, UPLOAD_DATA_DIR), inputs=[data_yaml_file], outputs=[data_yaml_path])
-                model_pt_file.change(fn=lambda f: save_uploaded_file(f, UPLOAD_MODEL_DIR), inputs=[model_pt_file], outputs=[model_pt_path])
+                data_yaml_file.change(fn=lambda f: save_uploaded_file(f, UPLOAD_TRAINING_INFO_DIR), inputs=[data_yaml_file], outputs=[data_yaml_path])
+                model_pt_file.change(fn=lambda f: save_uploaded_file(f, UPLOAD_TRAINING_INFO_DIR), inputs=[model_pt_file], outputs=[model_pt_path])
 
                 with gr.Row():
                     monitor_imgsz = gr.Slider(label="imgsz", minimum=256, maximum=2048, step=64, value=640)

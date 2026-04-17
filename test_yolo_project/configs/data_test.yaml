@@ -1,7 +1,0 @@
-path: /home/gpuadmin/seongje_gradio/test_yolo_project/datasets/251215_oilwater
-train: images/train
-val: images/val
-names:
-  - oil
-  - water
-  - bubble

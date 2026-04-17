@@ -1,33 +1,42 @@
 import os
 
-#DEFAULT_INPUT_DIR = "./input_images"
-EXPLORER_ROOT = "/home/gpuadmin"
-INF_RESULTS_ROOT = "/home/gpuadmin/seongje_gradio2/inf_results"
-
-UPLOAD_ROOT = "/home/gpuadmin/seongje_gradio2/test_yolo_project"
-UPLOAD_NEWDATASET_ROOT = f"{UPLOAD_ROOT}/datasets_for_labeling"
-UPLOAD_DATA_DIR = f"{UPLOAD_ROOT}/configs"
-UPLOAD_MODEL_DIR = f"{UPLOAD_ROOT}/base_model"
-
-TRAIN_ENV_PY = "/home/gpuadmin/anaconda3/envs/gr_ultra/bin/python"
-YOLO_CLI = "/home/gpuadmin/anaconda3/envs/gr_ultra/bin/yolo"
-
 PROJECT_ROOT = os.path.abspath("./test_yolo_project")
-RUNS_DIR = os.path.join(PROJECT_ROOT, "runs")
 
+#tab1
+EXPLORER_ROOT = PROJECT_ROOT
+
+#tab2
+UPLOAD_NEWDATASET_ROOT = os.path.join(PROJECT_ROOT, "tab2_datasets_for_labeling")
+
+#tab3
+UPLOAD_TRAINING_INFO_DIR = os.path.join(PROJECT_ROOT, "tab3_training_info")
+YOLO_CLI = "/home/qisens/anaconda3/envs/gradio/bin/yolo"    # YOLO 가상환경 경로로 바꿔주기
+RUNS_DIR = os.path.join(PROJECT_ROOT, "runs")
 METRIC_COLUMNS = [
     "metrics/mAP50-95(B)", "metrics/mAP50(B)",
     "metrics/precision(B)", "metrics/recall(B)",
     "metrics/mAP50-95(M)", "metrics/mAP50(M)",
     "metrics/precision(M)", "metrics/recall(M)",
 ]
-
 LOSS_COLUMNS = [
     "train/box_loss", "train/seg_loss", "train/cls_loss", "train/dfl_loss",
     "val/box_loss", "val/seg_loss", "val/cls_loss", "val/dfl_loss",
 ]
 
-LABELING_DEST_ROOT = os.path.join(
-        os.path.abspath("./test_yolo_project"),
-        "datasets_for_labeling"
-    )
+#tab4
+INF_RESULTS_ROOT = os.path.join(PROJECT_ROOT, "tab4_inf_results")
+LABELING_DEST_ROOT = os.path.join(PROJECT_ROOT, "tab4_datasets_for_labeling")
+
+#tab5
+
+#tab6
+
+
+
+
+
+
+
+
+
+

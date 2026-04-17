@@ -67,7 +67,7 @@ class YoloTrainer:
         self._lock = threading.Lock()
         self._epoch_eval_done_for = set()
 
-    def start_train(self, task, data_yaml, model_pt, imgsz, epochs, batch, lr0, device_str="0,1,2,3"):
+    def start_train(self, task, data_yaml, model_pt, imgsz, epochs, batch, lr0, device_str="0"):
         """
             [학습 시작]
             현재 실행 중인 학습 프로세스가 없다면, yolo CLI로 train을 시작한다.
