@@ -1,0 +1,7 @@
+path: /home/qisens/jeeeun/workspace/gradio/Gradio-MLOps_git_version/test_yolo_project/datasets/sample_dataset_20
+train: images/train
+val: images/val
+names:
+  - oil
+  - water
+  - bubble

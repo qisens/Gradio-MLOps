@@ -1,7 +1,0 @@
-path: /home/qisens/jeeeun/workspace/gradio/Gradio-MLOps_git_version/test_yolo_project/datasets/260416_oilwater_v2
-train: images/train
-val: images/val
-names:
-  - oil
-  - water
-  - bubble
