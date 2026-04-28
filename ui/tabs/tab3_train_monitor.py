@@ -1,10 +1,12 @@
 # ui/tabs/tab3_train_monitor.py
 import os
 import gradio as gr
+import shutil
+import yaml
 
 from core.config import (
     PROJECT_ROOT, RUNS_DIR, METRIC_COLUMNS, LOSS_COLUMNS,
-    UPLOAD_DATA_DIR, UPLOAD_MODEL_DIR
+    UPLOAD_TRAINING_INFO_DIR
 )
 from core.utils_csv import _build_runs_map, _on_run_change, _file_to_path
 from core.yolo_train import run_epoch_eval_manual
@@ -23,12 +25,13 @@ def build_tab3_train_monitor(trainer):
 
                 data_yaml_file = gr.File(label="data.yaml 업로드", file_types=[".yaml", ".yml"], file_count="single")
                 data_yaml_path = gr.Textbox(label="서버 저장 경로 (data.yaml)", interactive=False)
+                btn_check_conf = gr.Button("데이터 label에 conf 포함여부 체크")
 
                 model_pt_file = gr.File(label="모델(.pt) 업로드", file_types=[".pt"], file_count="single")
                 model_pt_path = gr.Textbox(label="서버 저장 경로 (model.pt)", interactive=False)
 
-                data_yaml_file.change(fn=lambda f: save_uploaded_file(f, UPLOAD_DATA_DIR), inputs=[data_yaml_file], outputs=[data_yaml_path])
-                model_pt_file.change(fn=lambda f: save_uploaded_file(f, UPLOAD_MODEL_DIR), inputs=[model_pt_file], outputs=[model_pt_path])
+                data_yaml_file.change(fn=lambda f: save_uploaded_file(f, UPLOAD_TRAINING_INFO_DIR), inputs=[data_yaml_file], outputs=[data_yaml_path])
+                model_pt_file.change(fn=lambda f: save_uploaded_file(f, UPLOAD_TRAINING_INFO_DIR), inputs=[model_pt_file], outputs=[model_pt_path])
 
                 with gr.Row():
                     monitor_imgsz = gr.Slider(label="imgsz", minimum=256, maximum=2048, step=64, value=640)
@@ -121,8 +124,89 @@ def build_tab3_train_monitor(trainer):
             outputs=[*plot6, last_update, timer, page_state],
         )
 
+        btn_check_conf.click(
+            fn=sanitize_segmentation_labels,
+            inputs=[data_yaml_path]
+        )
+
         btn_start_train.click(
             fn=lambda t, dy, mp, isz, ep, ba, lr0: trainer.start_train(t, dy, mp, isz, ep, ba, lr0),
             inputs=[task, data_yaml_path, model_pt_path, monitor_imgsz, monitor_epochs, monitor_batch, monitor_lr0],
             outputs=[train_status],
         )
+
+def has_conf(parts):
+    if len(parts) < 3:
+        return False
+    try:
+        conf = float(parts[1])
+        return 0.0 <= conf <= 1.0
+    except:
+        return False
+
+
+def sanitize_segmentation_labels(data_yaml_path):
+    with open(data_yaml_path, 'r') as f:
+        data = yaml.safe_load(f)
+
+    base_path = data['path']
+
+    def get_label_dir(img_rel):
+        return os.path.join(base_path, img_rel.replace('images', 'labels'))
+
+    label_dirs = [get_label_dir(data['train'])]
+    if 'val' in data:
+        label_dirs.append(get_label_dir(data['val']))
+
+    for label_dir in label_dirs:
+        if not os.path.exists(label_dir):
+            continue
+
+        backup_dir = label_dir + "_with_conf"
+
+        # 1️⃣ 백업 (복사)
+        if not os.path.exists(backup_dir):
+            print(f"[BACKUP] {label_dir} → {backup_dir}")
+            shutil.copytree(label_dir, backup_dir)
+        else:
+            print(f"[SKIP BACKUP] already exists: {backup_dir}")
+
+        changed_files = []
+
+        # 2️⃣ 파일 단위 처리
+        for fname in os.listdir(label_dir):
+            if not fname.endswith(".txt"):
+                continue
+
+            fpath = os.path.join(label_dir, fname)
+
+            new_lines = []
+            file_changed = False
+
+            with open(fpath, "r") as f:
+                for line in f:
+                    parts = line.strip().split()
+
+                    if has_conf(parts):
+                        # 🔥 conf 제거 (두 번째 값)
+                        parts = [parts[0]] + parts[2:]
+                        file_changed = True
+
+                    new_lines.append(" ".join(parts))
+
+            # 3️⃣ 변경된 파일만 overwrite
+            if file_changed:
+                with open(fpath, "w") as f:
+                    f.write("\n".join(new_lines))
+
+                changed_files.append(fname)
+
+        # 4️⃣ 로그 출력
+        if changed_files:
+            print(f"[MODIFIED] {label_dir}")
+            for f in changed_files:
+                print(f"  - {f}")
+        else:
+            print(f"[CLEAN] {label_dir} (수정 필요 없음)")
+
+    print("✅ sanitize 완료")

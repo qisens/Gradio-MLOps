@@ -10,32 +10,8 @@ import gradio as gr
 
 from ui.shared.js_assets import save_polygons_for_editor_from_seg_txt
 
-COCO_CLASSES = [
-    "person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light",
-    "fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow",
-    "elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee",
-    "skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard",
-    "surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana",
-    "apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch",
-    "potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone",
-    "microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear",
-    "hair drier","toothbrush"
-]
-COCO_COLORS = [
-    "#ff0000", "#00aaff", "#ffaa00", "#cc00ff", "#00cc44", "#aa00cc", "#33ffcc",
-    "#ff6699", "#33ccff", "#ffcc00", "#cc3300", "#0099cc", "#cc9900", "#66cc66",
-    "#9966ff", "#ff0066", "#66ffcc", "#cc0066", "#0066cc", "#00cc99",
-    "#ff3300", "#3366ff", "#ff6600", "#009966", "#cc0033", "#0066ff",
-    "#cc6600", "#00ccff", "#cc33ff", "#33ff00", "#9900cc", "#33cc00",
-    "#ff3399", "#6699ff", "#cc3366", "#66ff66", "#9933ff", "#00ffaa",
-    "#ff6699", "#3366cc", "#ff9966", "#3399cc", "#996633", "#66ccff",
-    "#cc0099", "#0099ff", "#cc6600", "#00cc66", "#ff3366", "#33ff99",
-    "#cc3300", "#0099cc", "#ff0033", "#33cc33", "#cc00cc", "#0066cc",
-    "#ffcc66", "#00cccc", "#9933cc", "#33cccc", "#ff6600", "#0099aa",
-    "#ff99cc", "#66cc33", "#cc0099", "#3399ff", "#ff6633", "#00aa66",
-    "#cc3399", "#33ccff", "#ff3399", "#66ff00", "#9900ff", "#33ffaa",
-    "#ff6666", "#3399cc", "#cc99ff", "#66ff99", "#33aa55", "#aa55ff"
-]
+COCO_CLASSES = ["oil", "water", "bubble"]
+COCO_COLORS = ["#ff0000", "#00aaff", "#ffaa00"]
 
 def pil_to_b64(img):
     buf = BytesIO()

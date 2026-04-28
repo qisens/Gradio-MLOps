@@ -56,7 +56,7 @@ class YoloTrainer:
         self._lock = threading.Lock()       #버튼 연타 방지(동시에 프로세스 돌아가지 못하도록 해줌)
         self._epoch_eval_done_for = set()   #집합
 
-    def start_train(self, task, data_yaml, model_pt, imgsz, epochs, batch, lr0, device_str="0,1"):
+    def start_train(self, task, data_yaml, model_pt, imgsz, epochs, batch, lr0, device_str="0"):
         """
             [학습 시작 함수]
             현재 실행 중인 학습 프로세스가 없다면, yolo CLI로 train을 시작한다.

@@ -214,6 +214,7 @@ def build_tab2_dataset():
         # out dataset 생성
         # ============================================================
         def _create_out(use, ex_root, out_root, name):
+            print("out_root", out_root, "// name", name)
             msg, final_root = ensure_out_dataset_root(out_root, name)
             if not final_root:
                 return msg, "", ""

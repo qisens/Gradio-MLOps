@@ -37,7 +37,7 @@ def build_single_img_compare_tab(
                 imgsz = gr.Slider(label="imgsz", minimum=256, maximum=2048, step=64, value=640)
                 conf_thres = gr.Slider(label="conf", minimum=0.0, maximum=1.0, step=0.01, value=0.25)
                 iou_thres = gr.Slider(label="iou", minimum=0.0, maximum=1.0, step=0.01, value=0.5)
-            device = gr.Textbox(label="device", value="1")
+            device = gr.Textbox(label="device", value="0")
 
         # ======================
         # Middle: 기존 모델 + 결과
@@ -199,7 +199,7 @@ def build_single_img_compare_tab(
             imgsz=int(s),
             conf_thres=float(c),
             iou_thres=float(i),
-            device=str(d).strip() or "cuda:1"
+            device=str(d).strip() or "cuda:0"
         ),
         inputs=[img_selected, old_model_path, new_model_path, imgsz, conf_thres, iou_thres, device],
         outputs=[old_vis, new_vis, old_conf_table, new_conf_table, status],
@@ -435,7 +435,7 @@ def build_dir_compare_tab(
                 conf_thres = gr.Slider(0.0, 1.0, step=0.01, value=0.25, label="conf")
                 iou_thres = gr.Slider(0.0, 1.0, step=0.01, value=0.5, label="iou")
 
-            device = gr.Textbox(label="device", value="1")
+            device = gr.Textbox(label="device", value="0")
 
             btn_compare = gr.Button("폴더 전체 conf 요약 비교", variant="primary")
             status = gr.Textbox(label="상태", interactive=False)
@@ -705,7 +705,7 @@ def build_dir_compare_tab(
     old_btn_refresh.click(fn=_refresh_model, inputs=[old_cur], outputs=[old_cur, old_dirs, old_files])
     new_btn_refresh.click(fn=_refresh_model, inputs=[new_cur], outputs=[new_cur, new_dirs, new_files])
 
-def build_tab6_compare():
+def build_tab6_compare(img_dir, model_dir):
     with gr.Tab("6. 모델 추론결과 비교"):
         with gr.Tabs():
 
@@ -714,8 +714,8 @@ def build_tab6_compare():
             # ---------------------------
             with gr.TabItem("Single Image Compare"):
                 build_single_img_compare_tab(
-                    default_img_dir="/home/qisens/Documents/An_gradio_project",
-                    default_model_dir="/home/qisens/Documents/An_gradio_project/test_yolo_project/runs/segment",
+                    default_img_dir=img_dir,
+                    default_model_dir=model_dir,
                 )
 
             # ---------------------------
@@ -724,6 +724,6 @@ def build_tab6_compare():
             # ---------------------------
             with gr.TabItem("Directory Summary Compare"):
                 build_dir_compare_tab(
-                    default_img_dir="/home/qisens/Documents/An_gradio_project",
-                    default_model_dir="/home/qisens/Documents/An_gradio_project/test_yolo_project/runs/segment",
+                    default_img_dir=img_dir,
+                    default_model_dir=model_dir,
                 )

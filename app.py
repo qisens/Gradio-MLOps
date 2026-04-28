@@ -3,7 +3,7 @@ import os
 
 import gradio as gr
 
-from core.config import PROJECT_ROOT, YOLO_CLI  #필요한 파일 경로 가져옴
+from core.config import PROJECT_ROOT, YOLO_CLI, RUNS_DIR  #필요한 파일 경로 가져옴
 from core.yolo_train import YoloTrainer         #학습/추론 담당 클래스
 
 from ui.shared.js_assets import load_all_js     #커스텀 JS파일을 읽어 Gradio에 주입
@@ -13,6 +13,7 @@ from ui.tabs.tab3_train_monitor import build_tab3_train_monitor
 from ui.tabs.tab4_perf_monitor import build_tab4_perf_monitor
 from ui.tabs.tab5_labeling import build_tab5_labeling
 from ui.tabs.tab6_compare import build_tab6_compare
+from ui.tabs.tab7_inference import build_tab7_inference
 
 SEARCH_BTN_CSS = """
 #search_btn_row {
@@ -72,7 +73,7 @@ def create_demo():
     #yolo 실행파일 경로 및 모델폴더 경로 지정
     trainer = YoloTrainer(yolo_cli=YOLO_CLI, project_root=PROJECT_ROOT)
 
-    with gr.Blocks() as demo:
+    with gr.Blocks(title="Easy MLOps") as demo:
         with gr.Tabs():
             #1.이미지 뷰어
             build_tab1_viewer()
@@ -85,7 +86,9 @@ def create_demo():
             #5.Labeling
             build_tab5_labeling()
             #6.모델추론결과 비교
-            build_tab6_compare()
+            build_tab6_compare(PROJECT_ROOT, RUNS_DIR)
+            #7.inference
+            build_tab7_inference(PROJECT_ROOT, RUNS_DIR)
 
     return demo, all_js
     #return demo, js(UI 및 JavaScript 리턴)
