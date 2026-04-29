@@ -1,19 +1,26 @@
 # =====================
 # Local experiments
 # =====================
-test_yolo_project/config
+test_yolo_project/config/*
+test_yolo_project/tab2_datasets/*
+test_yolo_project/tab4_inf_results/*
+
 !test_yolo_project/config/sample.yaml
-test_yolo_project/datasets
-test_yolo_project/runs
-test_yolo_project/tab2_datasets
-!test_yolo_project/tab2_datasets/1_org_dataset/**
-!test_yolo_project/tab2_datasets/2_new_dataset/**
-test_yolo_project/tab3_training_info
-test_yolo_project/tab4_inf_results
+!test_yolo_project/tab2_datasets/1_org_dataset
+!test_yolo_project/tab2_datasets/2_new_dataset
 !test_yolo_project/tab4_inf_results/20251201
 !test_yolo_project/tab4_inf_results/20251210
-test_yolo_project/tab7_inference
 
+!test_yolo_project/config/sample.yaml
+!test_yolo_project/tab2_datasets/1_org_dataset/**
+!test_yolo_project/tab2_datasets/2_new_dataset/**
+!test_yolo_project/tab4_inf_results/20251201/**
+!test_yolo_project/tab4_inf_results/20251210/**
+
+test_yolo_project/datasets
+test_yolo_project/runs
+test_yolo_project/tab3_training_info
+test_yolo_project/tab7_inference
 test_yolo_project_/
 
 # =====================
