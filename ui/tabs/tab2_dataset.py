@@ -107,6 +107,17 @@ def build_tab2_dataset():
 
                 existing_stats_df = gr.Dataframe(label="기존 데이터셋 통계", interactive=False)
 
+                new_choices_state = gr.State([])
+                with gr.Row():
+                    select_all_btn = gr.Button("전체 선택")
+                    deselect_all_btn = gr.Button("전체 해제")
+
+                new_list_box = gr.CheckboxGroup(
+                    label="신규 이미지 목록(체크=Train / 미체크=Val)",
+                    choices=[],
+                    value=[],
+                )
+
                 new_list_box = gr.CheckboxGroup(
                     label="신규 이미지 목록(체크=Train / 미체크=Val)",
                     choices=[],
@@ -191,7 +202,33 @@ def build_tab2_dataset():
             outputs=[log_box, final_out_root_state, out_root_view]
         )
 
-        # 5) 체크 기준 분할 복사 실행
+        # 5) 전체 선택 / 전체 해제
+        def _load_new_list(new_root):
+            choices, msg = list_new_images_for_checkbox_onelevel(new_root)
+            return gr.update(choices=choices, value=[]), msg, choices
+
+        new_dataset_dir.change(
+            _load_new_list,
+            inputs=[new_dataset_dir],
+            outputs=[new_list_box, log_box, new_choices_state]
+        )
+
+        def _select_all(choices):
+            return choices
+
+        select_all_btn.click(
+            fn=_select_all,
+            inputs=[new_choices_state],
+            outputs=[new_list_box],
+        )
+
+        deselect_all_btn.click(
+            fn=lambda: [],
+            inputs=[],
+            outputs=[new_list_box],
+        )
+
+        # 6) 체크 기준 분할 복사 실행
         def _split(selected_train, new_root, final_out_root):
             msg, df = split_new_dataset_by_selection_onelevel(
                 new_root=new_root,

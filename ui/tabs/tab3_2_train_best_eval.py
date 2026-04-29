@@ -27,8 +27,8 @@ def build_best_eval(task):
                     gr.Markdown("평가 대상 이미지 폴더 선택하기")
                     eval_img_path_tb, _, _, _ = build_folder_picker(
                         label="평가 이미지 폴더",
-                        root_dir=os.path.join(PROJECT_ROOT, "test_img"),
-                        default_path=os.path.join(PROJECT_ROOT, "test_img"),
+                        root_dir=PROJECT_ROOT,
+                        default_path=PROJECT_ROOT,
                     )
 
                 with gr.Row():

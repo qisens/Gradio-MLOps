@@ -4,7 +4,7 @@ import os
 from core.file_browser import IMAGE_EXTS
 from ui.tabs._ui_shared import build_path_dropdown_selector, build_markdown_log_box, build_log_textbox
 from core.utilities import build_folder_picker
-from core.config import PROJECT_ROOT
+from core.config import PROJECT_ROOT, RUNS_DIR
 from core.inf_conf import _predict_one
 import cv2
 import shutil
@@ -32,8 +32,8 @@ def build_inference_tab(
                 gr.Markdown("### 이미지 폴더 선택하기")
                 eval_img_path_tb, _, _, _ = build_folder_picker(
                     label="평가 이미지 폴더",
-                    root_dir=os.path.join(PROJECT_ROOT, "test_img"),
-                    default_path=os.path.join(PROJECT_ROOT, "test_img"),
+                    root_dir=PROJECT_ROOT,
+                    default_path=PROJECT_ROOT,
                 )
 
             with gr.Column():
@@ -79,7 +79,10 @@ def build_inference_tab(
             with gr.Row():
                 btn_mark_bad = gr.Button("복사할 이미지로 체크")
                 btn_unmark_bad = gr.Button("체크 해제")
-                btn_save_bad = gr.Button("선택한 이미지 저장")
+            with gr.Row():
+                btn_select_all_bad = gr.Button("전체 선택")
+                btn_clear_all_bad = gr.Button("전체 해제")
+                btn_save_bad = gr.Button("선택한 이미지 저장", scale=2)
             with gr.Row():
                 bad_list_md = build_log_textbox(label="선택된 이미지 리스트", lines=10)
 
@@ -177,7 +180,7 @@ def build_inference_tab(
 
         dir_name = f"{dataset_name}__{train_name}__{model_name}"
 
-        save_root = os.path.join(project_root, "7_inference", "inf_results", dir_name)
+        save_root = os.path.join(project_root, "tab7_inference", dir_name)
         img_save_dir = os.path.join(save_root, "result_images")
         txt_save_dir = os.path.join(save_root, "labels")
 
@@ -232,6 +235,22 @@ def build_inference_tab(
                 "bad_images": [],
             }
         )
+
+    # 전체 선택
+    def select_all_bad(state: dict):
+        if not state or not state.get("images"):
+            return state, "이미지 없음"
+
+        state["bad_images"] = list(state["images"])
+        return state, render_bad_list(state)
+
+    # 전체 해제
+    def clear_all_bad(state: dict):
+        if not state:
+            return state, "이미지 없음"
+
+        state["bad_images"] = []
+        return state, render_bad_list(state)
 
     # yolo txt 저장
     def save_yolo_txt_from_res(res, txt_path: str):
@@ -355,7 +374,7 @@ def build_inference_tab(
         date_tag = datetime.now().strftime("%y%m%d")
         dataset_name_with_date = f"{dataset_name}_{date_tag}"
 
-        save_root = os.path.join(PROJECT_ROOT, "7_inference", "bad_cases")
+        save_root = os.path.join(PROJECT_ROOT, "tab7_inference", "bad_cases")
         save_img_dir = os.path.join(save_root, dataset_name_with_date, "images")
         save_txt_dir = os.path.join(save_root, dataset_name_with_date, "labels")
         save_json_dir = os.path.join(save_root, dataset_name_with_date, "json")
@@ -493,6 +512,18 @@ def build_inference_tab(
         outputs=[viewer_state, bad_list_md],
     )
 
+    btn_select_all_bad.click(
+        fn=select_all_bad,
+        inputs=[viewer_state],
+        outputs=[viewer_state, bad_list_md],
+    )
+
+    btn_clear_all_bad.click(
+        fn=clear_all_bad,
+        inputs=[viewer_state],
+        outputs=[viewer_state, bad_list_md],
+    )
+
     btn_save_bad.click(
         fn=save_bad_images,
         inputs=[viewer_state],
@@ -511,9 +542,7 @@ def build_inference_tab(
 def build_tab7_inference():
     with gr.Tab("7. 모델 inference"):
         tab7 = build_inference_tab(
-            # default_img_dir="/home/gpuadmin/seongje_maixcam/yolo11_seg_dataset/images/val",
-            # default_model_dir="/home/gpuadmin/seongje_gradio2/test_yolo_project/runs/segment",
-            default_img_dir="/home/qisens/jeeeun/workspace/gradio/mlops_q2/1113_demo/test_img",
-            default_model_dir="/home/qisens/jeeeun/workspace/gradio/mlops_q2/1113_demo/runs/segment",
+            default_img_dir=PROJECT_ROOT,
+            default_model_dir=RUNS_DIR,
         )
         return tab7

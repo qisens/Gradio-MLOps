@@ -1,55 +1,50 @@
-# 1. 모든 파일 / 폴더 무시
-*
+# =====================
+# Local experiments
+# =====================
+test_yolo_project/config
+!test_yolo_project/config/sample.yaml
+test_yolo_project/datasets
+test_yolo_project/runs
+test_yolo_project/tab2_datasets
+!test_yolo_project/tab2_datasets/1_org_dataset/**
+!test_yolo_project/tab2_datasets/2_new_dataset/**
+test_yolo_project/tab3_training_info
+test_yolo_project/tab4_inf_results
+!test_yolo_project/tab4_inf_results/20251201
+!test_yolo_project/tab4_inf_results/20251210
+test_yolo_project/tab7_inference
 
-# 2. gitignore 자체는 추적
-!.gitignore
-!app.py
-!requirements.txt
+test_yolo_project_/
 
-# 3. 허용할 최상위 폴더들
-!core/
-!json/
-!ui/
+# =====================
+# Data & results
+# =====================
+datasets/
+datasets_for_labeling/
+runs/
+inf_results/
 
-# 4. 허용한 폴더 안의 내용도 추적
-!core/**
-!json/**
-!ui/**
+# =====================
+# YOLO weights
+# =====================
+*.pt
 
-#===========================================
+# =====================
+# Workspace runtime
+# =====================
+workspace/**/*
+!workspace/**/.gitkeep
 
-# Python
+# =====================
+# Python cache
+# =====================
 __pycache__/
 *.pyc
 *.pyo
 
-# IDE
+# =====================
+# IDE / UI cache
+# =====================
 .idea/
 .vscode/
-
-# Gradio / temp
 .gradio/
-*.tmp
-
-# Logs
-*.log
-
-# Env / secrets
-.env
-.env.*
-
-# Model artifacts
-runs/
-weights/
-*.pt
-*.onnx
-*.engine
-
-# Results (보통 산출물은 제외)
-inf_results/
-
-# Temp generated
-temp_generated.json
-
-# OS
-.DS_Store

@@ -236,8 +236,8 @@ def build_tab5_labeling_folder(current_tab: gr.State):
             gr.Markdown("### base 경로 선택하기")
             case_folder, _, _, _ = build_folder_picker(
                 label="Select base folder",
-                root_dir=os.path.join(PROJECT_ROOT, "7_inference/bad_cases"),
-                default_path=os.path.join(PROJECT_ROOT, "7_inference/bad_cases"),
+                root_dir=PROJECT_ROOT,
+                default_path=PROJECT_ROOT,
             )
 
             gr.Markdown("### classes.txt 파일 불러오기")

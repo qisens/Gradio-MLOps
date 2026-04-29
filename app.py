@@ -2,7 +2,6 @@
 import gradio as gr
 
 from core.config import PROJECT_ROOT, YOLO_CLI
-from core.yolo_train import YoloTrainer
 
 from ui.shared.js_assets import load_all_js
 from ui.tabs.tab1_viewer import build_tab1_viewer
@@ -13,14 +12,13 @@ from ui.tabs.tab5_main import build_tab5
 from ui.tabs.tab6_compare import build_tab6_compare
 from ui.tabs.tab7_inference import build_tab7_inference
 from core.yolo_train import YoloTrainer
-from core.utils_csv import _build_runs_map
 
 def create_demo():
     all_js = load_all_js("./json")
 
     trainer = YoloTrainer(yolo_cli=YOLO_CLI, project_root=PROJECT_ROOT)
 
-    with gr.Blocks(css="""
+    with gr.Blocks(title="Easy MLOps", css="""
     /* gradio textbox 로그 스타일 */
     #log_box textarea {
         background-color: #f3f4f6;

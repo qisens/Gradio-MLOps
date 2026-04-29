@@ -2,6 +2,7 @@
 import gradio as gr
 import os
 import pandas as pd
+from core.config import PROJECT_ROOT, RUNS_DIR
 from core.file_browser import list_dir, join_path, parent_dir, filter_files, IMAGE_EXTS, MODEL_EXTS
 from core.inf_conf import compare_infer_two_models, summarize_conf_for_dir
 
@@ -532,8 +533,8 @@ def build_tab6_compare():
             # ---------------------------
             with gr.TabItem("Single Image Compare"):
                 build_single_img_compare_tab(
-                    default_img_dir="/home/qisens/jeeeun/workspace/gradio/mlops_q2/1113_demo/test_img",
-                    default_model_dir="/home/qisens/jeeeun/workspace/gradio/mlops_q2/1113_demo/runs/segment",
+                    default_img_dir=PROJECT_ROOT,
+                    default_model_dir=RUNS_DIR,
                 )
 
             # ---------------------------
@@ -542,6 +543,6 @@ def build_tab6_compare():
             # ---------------------------
             with gr.TabItem("Directory Summary Compare"):
                 build_dir_compare_tab(
-                    default_img_dir="/home/qisens/jeeeun/workspace/gradio/mlops_q2/1113_demo/test_img",
-                    default_model_dir="/home/qisens/jeeeun/workspace/gradio/mlops_q2/1113_demo/runs/segment",
+                    default_img_dir=PROJECT_ROOT,
+                    default_model_dir=RUNS_DIR,
                 )
