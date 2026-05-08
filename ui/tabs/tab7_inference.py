@@ -37,7 +37,7 @@ def build_inference_tab(
                 )
 
             with gr.Column():
-                gr.Markdown("### 모델 경로 선택하기 (best.pt 모델 사용)")
+                gr.Markdown("### 모델 경로 선택하기 (최근 트레이닝 경로로 자동 세팅)")
                 weight_selector = build_path_dropdown_selector(label="weights 폴더 선택")
                 weights_dropdown = weight_selector["dropdown"]
                 weights_map_state = weight_selector["map_state"]
@@ -77,12 +77,12 @@ def build_inference_tab(
 
             gr.Markdown("### 복사할 이미지 체크 - 이미지와 txt가 저장됩니다.")
             with gr.Row():
-                btn_mark_bad = gr.Button("복사할 이미지로 체크")
-                btn_unmark_bad = gr.Button("체크 해제")
-            with gr.Row():
                 btn_select_all_bad = gr.Button("전체 선택")
                 btn_clear_all_bad = gr.Button("전체 해제")
-                btn_save_bad = gr.Button("선택한 이미지 저장", scale=2)
+            with gr.Row():
+                btn_mark_bad = gr.Button("현재 이미지 체크")
+                btn_unmark_bad = gr.Button("현재 이미지 체크 해제")
+                btn_save_bad = gr.Button("체크한 이미지들 저장", scale=2,  variant="primary")
             with gr.Row():
                 bad_list_md = build_log_textbox(label="선택된 이미지 리스트", lines=10)
 
@@ -540,7 +540,7 @@ def build_inference_tab(
 
 
 def build_tab7_inference():
-    with gr.Tab("7. 모델 inference"):
+    with gr.Tab("4. 모델 Inference"):
         tab7 = build_inference_tab(
             default_img_dir=PROJECT_ROOT,
             default_model_dir=RUNS_DIR,

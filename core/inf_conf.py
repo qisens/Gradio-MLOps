@@ -7,6 +7,8 @@ import numpy as np
 from dataclasses import dataclass
 from typing import Optional, Tuple
 from ultralytics import YOLO
+from core.file_browser import IMAGE_EXTS
+import glob
 
 import pandas as pd
 
@@ -314,8 +316,8 @@ def compare_infer_two_models(
     if img is None:
         return None, None, None, None, f"[ERROR] 이미지 로드 실패: {img_path}"
 
-    old_vis, old_df = _predict_one(old_model_path, img, imgsz, conf_thres, iou_thres, device)
-    new_vis, new_df = _predict_one(new_model_path, img, imgsz, conf_thres, iou_thres, device)
+    old_vis, old_df, _ = _predict_one(old_model_path, img, imgsz, conf_thres, iou_thres, device)
+    new_vis, new_df, _ = _predict_one(new_model_path, img, imgsz, conf_thres, iou_thres, device)
 
     return old_vis, new_vis, old_df, new_df, "[OK] 비교 추론 완료"
 
@@ -370,7 +372,7 @@ def summarize_conf_for_dir(
             continue
 
         # _predict_one은 (vis, per_img_df) 반환
-        _, per_img_df = _predict_one(model_path, img, imgsz, conf_thres, iou_thres, device)
+        _, per_img_df, _ = _predict_one(model_path, img, imgsz, conf_thres, iou_thres, device)
         if per_img_df is None or per_img_df.empty:
             continue
 

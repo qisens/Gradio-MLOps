@@ -23,7 +23,7 @@ class SourceState:
         1번 탭(Viewer)의 전체 상태를 담는 단일 State 모델.
 
         이 State 하나로:
-        - 서버/로컬 모드 구분
+        - 서버/원격 모드 구분
         - 이미지/라벨(txt) 소스 위치
         - 현재 탐색 인덱스
         - 현재 선택된 이미지
@@ -35,7 +35,7 @@ class SourceState:
     mode: str  # "server" | "local"
     # 현재 소스 모드
     # "server": 서버 내 디렉토리 기반 탐색
-    # "local" : 로컬 업로드 파일 기반 탐색
+    # "local" : 원격 업로드 파일 기반 탐색
 
     # -----------------
     # Server mode fields
@@ -47,8 +47,8 @@ class SourceState:
     # -----------------
     # Local mode fields
     # -----------------
-    local_images: List[str] = None  # 업로드된 로컬 이미지 파일 경로들(Gradio cache)
-    local_txts: List[str] = None    # 업로드된 로컬 txt 파일 경로들(Gradio cache)
+    local_images: List[str] = None  # 업로드된 원격 이미지 파일 경로들(Gradio cache)
+    local_txts: List[str] = None    # 업로드된 원격 txt 파일 경로들(Gradio cache)
 
     # -----------------
     # Navigation state
@@ -168,7 +168,7 @@ def _find_txt_for_image(st: SourceState, image_path: str) -> str:
 
 def _render_current_with_info(st, info: str):
     """
-        : 경로 설정 버튼 클릭 후 서버/로컬 공통 실행 함수
+        : 경로 설정 버튼 클릭 후 서버/원격 공통 실행 함수
         현재 state 기준으로
         - 원본 이미지
         - 추론 결과(윤곽선)
@@ -244,16 +244,16 @@ def on_set_server(server_img_sel: str, server_txt_sel: str, prev_state):
 def on_set_local(local_img_files, local_txt_files, prev_state):
     st = _dict_to_state(prev_state)
     """
-        [로컬로 설정] 버튼 클릭 시 호출됨.
+        [원격 설정] 버튼 클릭 시 호출됨.
 
         역할:
-        1) 업로드된 로컬 이미지/텍스트 파일 목록을 서버 캐시 경로로 수집
+        1) 업로드된 원격 이미지/텍스트 파일 목록을 서버 캐시 경로로 수집
         2) 이미지/텍스트 목록을 basename 기준으로 정렬
         3) mode를 'local'로 전환
         4) 첫 이미지 미리보기 출력
 
         주의:
-        - 브라우저 로컬 경로가 아니라 Gradio cache 경로(.name)를 사용
+        - 브라우저 원격 경로가 아니라 Gradio cache 경로(.name)를 사용
     """
     st = _dict_to_state(prev_state)
 
@@ -368,6 +368,34 @@ def build_tab1_viewer():
 
         with gr.Tabs():
             # =========================
+            # 원격 설정 탭
+            # =========================
+            with gr.Tab("원격에서 경로 설정"):
+                # 입력 영역 (2컬럼)
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        local_img_files = gr.File(
+                            label="1) 원본 이미지 선택 (여러 개)",
+                            file_count="multiple",
+                            file_types=["image"],
+                        )
+
+                    with gr.Column(scale=1):
+                        local_txt_files = gr.File(
+                            label="2) 추론결과 txt 선택 (여러 개)",
+                            file_count="multiple",
+                            file_types=[".txt"],
+                        )
+
+                # 버튼 영역 (2컬럼 합침)
+                with gr.Row():
+                    btn_set_local = gr.Button(
+                        "3) 경로로 설정",
+                        variant="primary",
+                        scale=1,
+                    )
+
+            # =========================
             # 서버 설정 탭
             # =========================
             with gr.Tab("서버에서 경로 설정"):
@@ -395,38 +423,12 @@ def build_tab1_viewer():
                         scale=1,
                     )
 
-            # =========================
-            # 로컬 설정 탭
-            # =========================
-            with gr.Tab("로컬에서 경로 설정"):
-                # 입력 영역 (2컬럼)
-                with gr.Row():
-                    with gr.Column(scale=1):
-                        local_img_files = gr.File(
-                            label="1) 로컬 원본 이미지 선택 (여러 개)",
-                            file_count="multiple",
-                            file_types=["image"],
-                        )
 
-                    with gr.Column(scale=1):
-                        local_txt_files = gr.File(
-                            label="2) 로컬 추론결과 txt 선택 (여러 개)",
-                            file_count="multiple",
-                            file_types=[".txt"],
-                        )
-
-                # 버튼 영역 (2컬럼 합침)
-                with gr.Row():
-                    btn_set_local = gr.Button(
-                        "3) 경로로 설정",
-                        variant="primary",
-                        scale=1,
-                    )
 
         # gr.Group()의 배경이 회색임. 그래서 더 로그같이 보이는거.
         info_box = build_markdown_log_box(
             title="경로 설정 상태 로그",
-            value="서버 또는 로컬에서 경로를 선택해 주세요.",
+            value="서버 또는 원격에서 경로를 선택해 주세요.",
         )
 
         with gr.Row():

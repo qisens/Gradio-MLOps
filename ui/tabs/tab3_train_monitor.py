@@ -8,7 +8,7 @@ from ui.tabs.tab3_2_train_best_eval import build_best_eval
 
 
 def build_tab3_train_monitor(trainer):
-    with gr.Tab("3. Train Monitor"):
+    with gr.Tab("3. Training Monitor"):
         # ===== shared state =====
         results_csv_path = gr.State("")
         epoch_tick = gr.State(0)

@@ -7,9 +7,9 @@ from ui.tabs.tab5_labeling_canvas import build_tab5_labeling_canvas
 from ui.shared.js_assets import load_all_js
 
 def build_tab5():
-    with gr.Tab("5. Labeling"):
+    with gr.Tab("7. Labeling"):
         ALL_JS = load_all_js("./json")
-        gr.HTML(f"<script>{ALL_JS}</script>")
+        gr.HTML(f"<script>{ALL_JS}</script>", visible=False)
 
         current_tab = gr.State("folder")
 

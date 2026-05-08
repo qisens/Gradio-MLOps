@@ -68,7 +68,7 @@ def load_polygon_for_edit(selected_file, image_file, classes_file):
     }
 
 
-def gen_json_return_file_and_json(img_f, txt_f, cls_f):
+def gen_json_return_file_and_json(img_f, txt_f, cls_f, save_filename):
     """
     (이미지 + 추론 txt + classes.txt) → 임시 JSON 생성 + JS editor 로딩
     """
@@ -76,7 +76,7 @@ def gen_json_return_file_and_json(img_f, txt_f, cls_f):
         image_path=img_f.name,
         txt_path=txt_f.name,
         classes_txt_path=cls_f.name if cls_f else None,
-        json_path="temp_generated.json",
+        json_path=save_filename,
         conf_threshold=0.25,
         assume_normalized="auto"
     )
@@ -210,7 +210,7 @@ def build_tab5_labeling(current_tab: gr.State):
                 <ul>
                     <li><b>Click + Drag</b> : 포인트 이동</li>
                     <li><b>Ctrl + Click</b> : 포인트 삭제</li>
-                    <li><b>Shift + Click</b> : 포인트 추가</li>
+                    <li><b>Shift + Click</b> : 포인트 추가 (포인트 추가 후 Finish Polygon 버튼 누르기)</li>
                     <li><b>Ctrl + Z / Y</b> : Undo / Redo</li>
                     <li><b>New Polygon / Finish Polygon 버튼</b> : 새로운 폴리곤 추가 / 종료</li>
                 </ul>
@@ -287,7 +287,7 @@ def build_tab5_labeling(current_tab: gr.State):
     # 이미지+txt에서 JSON 생성 후 JS editor 호출
     gen_btn.click(
         fn=gen_json_return_file_and_json,
-        inputs=[image_file, infer_txt_file, classes_txt_file],
+        inputs=[image_file, infer_txt_file, classes_txt_file, save_name_json_from_txt],
         outputs=[gen_file, gen_out]
     ).then(
         fn=None,

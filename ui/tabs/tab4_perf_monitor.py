@@ -388,5 +388,5 @@ def build_perf_monitor_tab(default_root: str):
     }
 
 def build_tab4_perf_monitor():
-    with gr.Tab("4. 모델 성능 모니터링"):
+    with gr.Tab("6. 모델 성능 모니터링"):
         build_perf_monitor_tab(default_root=INF_RESULTS_ROOT)

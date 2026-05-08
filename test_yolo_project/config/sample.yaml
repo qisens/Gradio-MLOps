@@ -1,4 +1,4 @@
-path: /home/qisens/jeeeun/workspace/gradio/easyMLOps_AnHyunJun_paper_ver/test_yolo_project/tab2_datasets/dataset_0427
+path: /home/gpuadmin/jeeeun/gradio_MLOps_jeeeun/test_yolo_project/tab2_datasets/1_org_dataset
 train: images/train
 val: images/val
 names:

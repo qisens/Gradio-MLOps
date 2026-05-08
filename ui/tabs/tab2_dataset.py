@@ -16,26 +16,26 @@ def build_tab2_dataset():
     with gr.Tab("2. Dataset 설정"):
         final_out_root_state = gr.State("")  # 실제 저장 루트(out_root/dataset_name)
 
-        with gr.Accordion(label="로컬 업로드", open=False):
-            gr.Markdown("### ⬆️ 로컬 업로드 → test_yolo_project/datasets_for_labeling/<폴더명>/images,labels 저장")
+        with gr.Accordion(label="원격에서 데이터 업로드", open=False):
+            gr.Markdown("### ⬆️ 원격 업로드 → test_yolo_project/<폴더명>/images,labels 저장")
 
             labeling_dataset_name = gr.Textbox(
-                label="업로드 저장 폴더명 (datasets_for_labeling 하위 생성)",
+                label="업로드 저장 폴더명 (test_yolo_project 하위 생성)",
                 placeholder="예) labeling_20251231_v1",
             )
 
             local_images = gr.File(
-                label="로컬 이미지 업로드(여러개)",
+                label="이미지 업로드(여러개)",
                 file_count="multiple",
                 file_types=["image"],
             )
             local_txts = gr.File(
-                label="로컬 txt 업로드(여러개)",
+                label="txt 업로드(여러개)",
                 file_count="multiple",
                 file_types=[".txt"],
             )
 
-            upload_btn = gr.Button("⬆️ 서버로 업로드 저장")
+            upload_btn = gr.Button("⬆️ 서버로 업로드")
             upload_log = gr.Textbox(label="업로드 로그", lines=8)
             upload_path_view = gr.Textbox(label="생성된 dataset_root", interactive=False)
 

@@ -57,10 +57,11 @@ def create_demo():
             build_tab1_viewer()
             build_tab2_dataset()
             tab3 = build_tab3_train_monitor(trainer=trainer)
+            tab7 = build_tab7_inference()
+            build_tab6_compare()
             build_tab4_perf_monitor()
             build_tab5()
-            build_tab6_compare()
-            tab7 = build_tab7_inference()
+
 
         demo.load(
             fn=lambda task_name: (
@@ -94,5 +95,5 @@ def create_demo():
 if __name__ == "__main__":
     demo, ALL_JS = create_demo()
     #demo = create_demo()
-    # demo.launch(js=ALL_JS, share=True)
-    demo.launch(js=ALL_JS, server_port=7861)
+    demo.launch(js=ALL_JS, server_name="0.0.0.0", server_port=7865)
+    # demo.launch(js=ALL_JS, server_port=7861, share=True)

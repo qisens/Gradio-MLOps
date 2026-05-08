@@ -51,7 +51,7 @@ def build_train_new(
 
         with gr.Row():
             monitor_imgsz = gr.Slider(256, 2048, 640, step=64, label="imgsz")
-            monitor_epochs = gr.Slider(1, 500, 11, step=1, label="epochs")
+            monitor_epochs = gr.Slider(1, 500, 101, step=1, label="epochs")
 
         with gr.Row():
             monitor_batch = gr.Slider(1, 128, 16, step=1, label="batch")

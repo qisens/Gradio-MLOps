@@ -525,7 +525,7 @@ def build_dir_compare_tab(
     new_btn_refresh.click(fn=_refresh_model, inputs=[new_cur], outputs=[new_cur, new_dirs, new_files])
 
 def build_tab6_compare():
-    with gr.Tab("6. 모델 추론결과 비교"):
+    with gr.Tab("5. 모델 추론결과 비교"):
         with gr.Tabs():
 
             # ---------------------------
