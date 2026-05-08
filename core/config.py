@@ -41,8 +41,7 @@ LOSS_COLUMNS = [
     "val/box_loss", "val/seg_loss", "val/cls_loss", "val/dfl_loss",
 ]
 
-# tab4
-INF_RESULTS_ROOT = os.path.join(PROJECT_ROOT, "tab4_inf_results")
-LABELING_DEST_ROOT = os.path.join(PROJECT_ROOT, "tab4_datasets_for_labeling")
+# tab6
+INF_RESULTS_ROOT = os.path.join(PROJECT_ROOT, "tab6_inf_results")
+LABELING_DEST_ROOT = os.path.join(PROJECT_ROOT, "tab6_datasets_for_labeling")
 
-# tab7

@@ -2,7 +2,7 @@
 # ui/tabs/tab5_labeling_canvas.py
 import gradio as gr
 
-def build_tab5_labeling_canvas():
+def build_tab7_labeling_canvas():
     """
     Tab5 전체에서 공통으로 사용하는 단일 Canvas
     JS editor는 항상 이 canvas(#edit_canvas)에만 그림

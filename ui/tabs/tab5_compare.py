@@ -1,4 +1,4 @@
-# ui/tabs/tab6_compare.py
+# ui/tabs/tab5_compare.py
 import gradio as gr
 import os
 import pandas as pd
@@ -524,7 +524,7 @@ def build_dir_compare_tab(
     old_btn_refresh.click(fn=_refresh_model, inputs=[old_cur], outputs=[old_cur, old_dirs, old_files])
     new_btn_refresh.click(fn=_refresh_model, inputs=[new_cur], outputs=[new_cur, new_dirs, new_files])
 
-def build_tab6_compare():
+def build_tab5_compare():
     with gr.Tab("5. 모델 추론결과 비교"):
         with gr.Tabs():
 

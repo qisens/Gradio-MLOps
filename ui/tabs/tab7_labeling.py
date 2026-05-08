@@ -158,7 +158,7 @@ def json_file_to_yolo_seg_txt(json_f, image_f, out_name="edited.txt"):
     return out_path
 
 
-def build_tab5_labeling(current_tab: gr.State):
+def build_tab7_labeling(current_tab: gr.State):
     ''' UI 컴포넌트 관련 '''
     with gr.Row():
         with gr.Column(scale=1):

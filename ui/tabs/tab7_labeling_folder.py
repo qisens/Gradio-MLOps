@@ -229,7 +229,7 @@ def save_current_overwrite(cur_index, file_list, case_paths, current_json):
     return f"✅ Saved: {json_path.name}, {txt_path.name}"
 
 
-def build_tab5_labeling_folder(current_tab: gr.State):
+def build_tab7_labeling_folder(current_tab: gr.State):
     ''' UI 컴포넌트 관련 '''
     with gr.Row():
         with gr.Column(scale=1):

@@ -1,4 +1,4 @@
-# ui/tabs/tab7_inference.py
+# ui/tabs/tab4_inference.py
 import gradio as gr
 import os
 from core.file_browser import IMAGE_EXTS
@@ -20,7 +20,7 @@ def build_inference_tab(
     default_model_dir: str,
 ):
     """
-    7번째 탭 UI 구성
+    4번째 탭 UI 구성
     """
     with gr.Row():
         # ======================
@@ -75,7 +75,7 @@ def build_inference_tab(
                 btn_prev_img = gr.Button("이전")
                 btn_next_img = gr.Button("다음")
 
-            gr.Markdown("### 복사할 이미지 체크 - 이미지와 txt가 저장됩니다.")
+            gr.Markdown("### 복사할 이미지 체크 - 이미지와 txt, json이 저장됩니다.")
             with gr.Row():
                 btn_select_all_bad = gr.Button("전체 선택")
                 btn_clear_all_bad = gr.Button("전체 해제")
@@ -180,7 +180,7 @@ def build_inference_tab(
 
         dir_name = f"{dataset_name}__{train_name}__{model_name}"
 
-        save_root = os.path.join(project_root, "tab7_inference", dir_name)
+        save_root = os.path.join(project_root, "tab4_inference", dir_name)
         img_save_dir = os.path.join(save_root, "result_images")
         txt_save_dir = os.path.join(save_root, "labels")
 
@@ -374,7 +374,7 @@ def build_inference_tab(
         date_tag = datetime.now().strftime("%y%m%d")
         dataset_name_with_date = f"{dataset_name}_{date_tag}"
 
-        save_root = os.path.join(PROJECT_ROOT, "tab7_inference", "bad_cases")
+        save_root = os.path.join(PROJECT_ROOT, "tab4_inference", "bad_cases")
         save_img_dir = os.path.join(save_root, dataset_name_with_date, "images")
         save_txt_dir = os.path.join(save_root, dataset_name_with_date, "labels")
         save_json_dir = os.path.join(save_root, dataset_name_with_date, "json")
@@ -539,10 +539,10 @@ def build_inference_tab(
     }
 
 
-def build_tab7_inference():
+def build_tab4_inference():
     with gr.Tab("4. 모델 Inference"):
-        tab7 = build_inference_tab(
+        tab4 = build_inference_tab(
             default_img_dir=PROJECT_ROOT,
             default_model_dir=RUNS_DIR,
         )
-        return tab7
+        return tab4

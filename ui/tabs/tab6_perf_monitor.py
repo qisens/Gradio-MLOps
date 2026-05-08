@@ -1,4 +1,4 @@
-# ui/tabs/tab4_perf_monitor.py
+# ui/tabs/tab6_perf_monitor.py
 import gradio as gr
 from core.config import INF_RESULTS_ROOT
 
@@ -195,7 +195,7 @@ def change_date_hist(date_str: str, state: dict):
 
 def build_perf_monitor_tab(default_root: str):
     """
-    Tab4 UI + (mean<=threshold 날짜 선택) -> org_img/txt 복사 기능 포함
+    Tab6 UI + (mean<=threshold 날짜 선택) -> org_img/txt 복사 기능 포함
     """
     with gr.Row():
         with gr.Column(scale=2):
@@ -387,6 +387,6 @@ def build_perf_monitor_tab(default_root: str):
         "copy_log": copy_log,
     }
 
-def build_tab4_perf_monitor():
+def build_tab6_perf_monitor():
     with gr.Tab("6. 모델 성능 모니터링"):
         build_perf_monitor_tab(default_root=INF_RESULTS_ROOT)
