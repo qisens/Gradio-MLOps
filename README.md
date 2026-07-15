@@ -1,14 +1,4 @@
 
-test dataset 10개는 랜덤 스플릿으로 만드시고, 두 모델에 동일하게 사용하시면 됩니다. 
-
-모델 한개는 테스트 데이터셋을 제외한 90개로 트레이닝 시키시고, 
-
-두번째 모델은 90개중 10개를 랜덤으로 더 제외하고 80개로 트레이닝 시키시면 됩니다.
-
----
----
-
-
 # easyMLOps (Gradio-based MLOps Framework)
 
 This repository provides the implementation of a Gradio-based MLOps framework
