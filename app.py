@@ -95,4 +95,4 @@ if __name__ == "__main__":
     demo, ALL_JS = create_demo()
     #demo = create_demo()
     # demo.launch(js=ALL_JS, share=True)
-    demo.launch(js=ALL_JS, server_port=7861)
+    demo.launch(js=ALL_JS, server_port=7862)

@@ -1,5 +1,6 @@
 import gradio as gr
 import pandas as pd
+import random
 
 from core.config import PROJECT_ROOT
 from core.dataset_service import (
@@ -107,21 +108,32 @@ def build_tab2_dataset():
 
                 existing_stats_df = gr.Dataframe(label="기존 데이터셋 통계", interactive=False)
 
+                gr.Markdown("⭐ 신규 이미지 목록 ⭐")
+
                 new_choices_state = gr.State([])
                 with gr.Row():
                     select_all_btn = gr.Button("전체 선택")
                     deselect_all_btn = gr.Button("전체 해제")
 
+                with gr.Group():
+                    with gr.Row():
+                        gr.Markdown("### 🎲 데이터 자동 랜덤 분할 (Smart Split)")
+                        # 버튼 하나로 체크박스를 자동 조작
+                        random_split_btn = gr.Button("🪄 랜덤 분할 적용", variant="secondary")
+                    # Train 데이터의 비율을 정하는 슬라이더 (0.0 ~ 1.0)
+                    train_ratio = gr.Slider(
+                        minimum=0.0, maximum=1.0, value=0.8, step=0.05,
+                        label="Train 비율 설정 (나머지는 Val)"
+                    )
+
                 new_list_box = gr.CheckboxGroup(
-                    label="신규 이미지 목록(체크=Train / 미체크=Val)",
+                    label="체크 = Train dataset / 미체크 = Val dataset",
                     choices=[],
                     value=[],
                 )
 
-                new_list_box = gr.CheckboxGroup(
-                    label="신규 이미지 목록(체크=Train / 미체크=Val)",
-                    choices=[],
-                    value=[],
+                selection_stats = gr.Markdown(
+                    "**Train:** 0 | **Val:** 0 | **Total:** 0"
                 )
 
                 out_root_view= build_markdown_log_box(
@@ -167,15 +179,6 @@ def build_tab2_dataset():
         )
 
         # 3) 신규 데이터셋 선택되면 (images/ 한 레벨) 이미지 목록 로드
-        def _load_new_list(new_root):
-            choices, msg = list_new_images_for_checkbox_onelevel(new_root)
-            return gr.update(choices=choices, value=[]), msg
-
-        new_dataset_dir.change(
-            _load_new_list,
-            inputs=[new_dataset_dir],
-            outputs=[new_list_box, log_box]
-        )
 
         # 4) out_dataset_dir + dataset_name 으로 최종 저장 루트 생성
         def _create_out(use, ex_root, out_root, name):
@@ -202,15 +205,65 @@ def build_tab2_dataset():
             outputs=[log_box, final_out_root_state, out_root_view]
         )
 
+        def _make_stats_text(train_cnt, total_cnt):
+            val_cnt = total_cnt - train_cnt
+            if total_cnt == 0:
+                return "**Train:** 0 | **Val:** 0 | **Total:** 0"
+            return (
+                f"**Train:** {train_cnt} ({train_cnt/total_cnt*100:.1f}%) | "
+                f"**Val:** {val_cnt} ({val_cnt/total_cnt*100:.1f}%) | "
+                f"**Total:** {total_cnt}"
+            )
+
+        def _apply_random_split(new_root, ratio):
+            # 1. 현재 선택된 경로에서 이미지 목록을 새로 가져옴
+            choices, msg = list_new_images_for_checkbox_onelevel(new_root)
+
+            # [추가된 부분] 데이터가 없을 때 경고 팝업 띄우기
+            if not choices:
+                gr.Warning("⚠️ 분할할 이미지가 없습니다! 왼쪽에서 '이번 데이터셋 경로'를 먼저 선택해주세요.")
+                return gr.update(), "⚠️ 분할할 이미지가 없습니다. 경로를 먼저 선택하세요.", _make_stats_text(0, 0)
+
+            # 2. 리스트를 복사하여 무작위로 섞음
+            # random.seed(42): 매번 같은 결과를 얻기 위한 고정값 (재현성 확보)
+            random.seed(42)
+            shuffled_list = list(choices)
+            random.shuffle(shuffled_list)
+
+            # 3. 비율(ratio)에 따라 자를 위치 계산
+            split_point = int(len(shuffled_list) * ratio)
+
+            # 4. 앞부분은 Train(체크 대상), 뒷부분은 Val(미체크 대상)
+            train_selected = shuffled_list[:split_point]
+
+            # UI 업데이트: 체크박스 값 변경, 로그 출력, 하단 통계 갱신
+            log_msg = f"[INFO] 전체 {len(shuffled_list)}개 데이터 중 {len(train_selected)}개를 Train으로 자동 배정했습니다. (비율: {ratio * 100}%)"
+
+            # [추가된 부분] 성공했을 때 기분 좋은 안내 팝업 띄우기
+            gr.Info(f" 성공! {len(train_selected)}개의 이미지가 Train으로 배정되었습니다.")
+
+            return (
+                gr.update(value=train_selected),
+                log_msg,
+                _make_stats_text(len(train_selected), len(shuffled_list))
+            )
+
+        # 랜덤 분할 버튼 이벤트 연결
+        random_split_btn.click(
+            _apply_random_split,
+            inputs=[new_dataset_dir, train_ratio],
+            outputs=[new_list_box, log_box, selection_stats]
+        )
+
         # 5) 전체 선택 / 전체 해제
         def _load_new_list(new_root):
             choices, msg = list_new_images_for_checkbox_onelevel(new_root)
-            return gr.update(choices=choices, value=[]), msg, choices
+            return gr.update(choices=choices, value=[]), msg, choices, _make_stats_text(0, len(choices))
 
         new_dataset_dir.change(
             _load_new_list,
             inputs=[new_dataset_dir],
-            outputs=[new_list_box, log_box, new_choices_state]
+            outputs=[new_list_box, log_box, new_choices_state, selection_stats]
         )
 
         def _select_all(choices):

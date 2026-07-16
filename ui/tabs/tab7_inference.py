@@ -10,6 +10,7 @@ import cv2
 import shutil
 from pathlib import Path
 from ui.shared.js_assets import save_polygons_for_editor_from_seg_txt #json 만들기 위함
+import pandas as pd
 
 from datetime import datetime
 def get_today_ymd():
@@ -85,6 +86,14 @@ def build_inference_tab(
                 btn_save_bad = gr.Button("선택한 이미지 저장", scale=2)
             with gr.Row():
                 bad_list_md = build_log_textbox(label="선택된 이미지 리스트", lines=10)
+
+            # --- CSV 내보내기 UI ---
+            gr.Markdown("### 📊 추론 통계 리포트 내보내기")
+            with gr.Row():
+                btn_export_csv = gr.Button("추론 통계 CSV 다운로드", variant="secondary")
+            with gr.Row():
+                csv_download_file = gr.File(label="다운로드 파일", interactive=False)
+            # ----------------------------------------
 
 
     ''' state '''
@@ -438,6 +447,58 @@ def build_inference_tab(
         lines = "\n".join([f"- {f}" for f in state["bad_images"]])
         return f"**총 {len(state['bad_images'])}개 선택됨**\n\n{lines}"
 
+    # --- CSV 내보내기 처리 함수 ---
+    # def export_statistics_csv(state: dict):
+    #     print("csv save function called************************")
+    #     if not state or not state.get("infer_dir"):
+    #         return None
+    #
+    #     infer_dir = Path(state["infer_dir"])
+    #     labels_dir = infer_dir.parent / "labels"
+    #
+    #     if not labels_dir.exists():
+    #         return None
+    #
+    #     stats_data = []
+    #
+    #     for txt_file in labels_dir.glob("*.txt"):
+    #         with open(txt_file, "r") as f:
+    #             lines = f.readlines()
+    #             for line in lines:
+    #                 parts = line.strip().split()
+    #                 if len(parts) >= 2:
+    #                     cls_id = int(parts[0])
+    #                     conf = float(parts[1])
+    #                     stats_data.append({
+    #                         "image": txt_file.name.replace(".txt", ".jpg"),
+    #                         "class_id": cls_id,
+    #                         "confidence": conf
+    #                     })
+    #
+    #     if not stats_data:
+    #         return None
+    #
+    #     df = pd.DataFrame(stats_data)
+    #
+    #     # 클래스별 요약 통계 계산
+    #     summary_df = df.groupby("class_id").agg(
+    #         탐지_객체_수=("class_id", "count"),
+    #         평균_신뢰도=("confidence", "mean"),
+    #         최소_신뢰도=("confidence", "min"),
+    #         최대_신뢰도=("confidence", "max")
+    #     ).reset_index()
+    #
+    #     # CSV 파일 저장
+    #     save_root = os.path.join(PROJECT_ROOT, "tab7_inference", "reports")
+    #     os.makedirs(save_root, exist_ok=True)
+    #
+    #     csv_filename = f"inference_stats_{get_today_ymd()}.csv"
+    #     csv_path = os.path.join(save_root, csv_filename)
+    #     print("csv save path : {}".format(csv_path))
+    #     summary_df.to_csv(csv_path, index=False, encoding="utf-8-sig")
+    #
+    #     return csv_path
+
     ''' event 등록 '''
     weights_dir_tb.change(
         fn=list_pt_files,
@@ -529,6 +590,13 @@ def build_inference_tab(
         inputs=[viewer_state],
         outputs=[infer_log_tb],  # 로그창 재활용
     )
+
+    # # --- [여기에 추가 3] CSV 다운로드 버튼 이벤트 연결 ---
+    # btn_export_csv.click(
+    #     fn=export_statistics_csv,
+    #     inputs=[viewer_state],
+    #     outputs=[csv_download_file]
+    # )
 
     return {
         "weights_selector": {
