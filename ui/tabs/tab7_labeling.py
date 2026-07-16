@@ -1,0 +1,363 @@
+# ui/tabs/tab5_labeling.py
+import time, json, base64
+import os
+import cv2
+import tempfile
+from pathlib import Path
+from io import BytesIO
+from PIL import Image
+import gradio as gr
+import colorsys
+from ui.shared.js_assets import save_polygons_for_editor_from_seg_txt
+from ui.tabs._ui_shared import build_markdown_log_box, build_log_textbox
+
+
+def load_classes_txt(classes_file):
+    """
+    classes.txt → (class_names, class_colors)
+    """
+    if classes_file is None:
+        return [], []
+
+    text = Path(classes_file.name).read_text(encoding="utf-8")
+    class_names = [l.strip() for l in text.splitlines() if l.strip()]
+
+    # 클래스 개수에 맞춰 색상 자동 생성
+    class_colors = []
+    for i in range(len(class_names)):
+        h = i / max(1, len(class_names))
+        r, g, b = colorsys.hsv_to_rgb(h, 0.7, 1.0)
+        class_colors.append(
+            "#{:02x}{:02x}{:02x}".format(
+                int(r * 255), int(g * 255), int(b * 255)
+            )
+        )
+
+    return class_names, class_colors
+
+
+def pil_to_b64(img):
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+
+def load_polygon_for_edit(selected_file, image_file, classes_file):
+    """
+    업로드된 JSON + 이미지로 JS editor에 폴리곤 로드하기
+    """
+
+    if selected_file is None or image_file is None:
+        return {"status": "error", "message": "JSON + 이미지 필요"}
+
+    class_names, class_colors = load_classes_txt(classes_file)
+
+    poly_raw = Path(selected_file.name).read_text(encoding="utf-8")
+    img = Image.open(image_file.name)
+    b64img = pil_to_b64(img)
+
+    return {
+        "polygon_json": poly_raw,
+        "image_b64": b64img,
+        "meta": {
+            "names": class_names,
+            "colors": class_colors
+        },
+        "_nonce": time.time(),
+        "loaded_file_path": selected_file.name
+    }
+
+
+def gen_json_return_file_and_json(img_f, txt_f, cls_f, save_filename):
+    """
+    (이미지 + 추론 txt + classes.txt) → 임시 JSON 생성 + JS editor 로딩
+    """
+    json_path, out = save_polygons_for_editor_from_seg_txt(
+        image_path=img_f.name,
+        txt_path=txt_f.name,
+        classes_txt_path=cls_f.name if cls_f else None,
+        json_path=save_filename,
+        conf_threshold=0.25,
+        assume_normalized="auto"
+    )
+
+    names, colors = load_classes_txt(cls_f)
+    out["meta"] = {
+        "names": names,
+        "colors": colors
+    }
+
+    return json_path, out
+
+
+def json_file_to_yolo_seg_txt(json_f, image_f, out_name="edited.txt"):
+    """
+    ✅ 핵심: JSON 파일 + 이미지 파일로 YOLO-seg 학습용 txt 생성해서 다운로드
+    txt 형식:  class_id x1 y1 x2 y2 ... (0~1 정규화)
+    """
+    if json_f is None:
+        raise gr.Error("Export할 JSON 파일을 선택해주세요. (Select polygon JSON file)")
+    if image_f is None:
+        raise gr.Error("이미지 파일이 필요합니다.")
+
+    img = cv2.imread(image_f.name)
+    if img is None:
+        raise gr.Error(f"이미지 로드 실패: {image_f.name}")
+    h, w = img.shape[:2]
+
+    json_text = Path(json_f.name).read_text(encoding="utf-8")
+    try:
+        data = json.loads(json_text)
+    except Exception as e:
+        raise gr.Error(f"JSON 파싱 실패: {e}")
+
+    anns = data.get("annotations", [])
+    lines = []
+    for ann in anns:
+        class_id = ann.get("class_id", 0)
+        try:
+            class_id = int(class_id)
+        except Exception:
+            # 혹시 (0,) 같은 이상한 형태면 문자 정리
+            s = str(class_id).replace("(", "").replace(")", "").replace("[", "").replace("]", "").replace(",",
+                                                                                                          "").strip()
+            class_id = int(float(s))
+
+        seg = ann.get("segmentation", None)
+        if not seg or not seg[0]:
+            continue
+
+        poly = seg[0]  # [x1,y1,x2,y2,...] (pixel coords)
+        coords = []
+        for i in range(0, len(poly), 2):
+            x = poly[i] / w
+            y = poly[i + 1] / h
+            # 0~1 클램프
+            x = 0.0 if x < 0 else (1.0 if x > 1 else x)
+            y = 0.0 if y < 0 else (1.0 if y > 1 else y)
+            coords.append(f"{x:.6f}")
+            coords.append(f"{y:.6f}")
+
+        if coords:
+            lines.append(f"{class_id} " + " ".join(coords))
+
+    # 안전한 임시 파일 생성
+    if not out_name or out_name.strip() == "":
+        out_name = "edited.txt"
+    if not out_name.endswith(".txt"):
+        out_name += ".txt"
+
+        # 시스템의 임시 디렉토리 경로를 가져와서 사용자가 원하는 파일명과 합칩니다.
+    temp_dir = tempfile.gettempdir()
+    out_path = os.path.join(temp_dir, out_name)
+
+    # 파일 쓰기
+    Path(out_path).write_text("\n".join(lines), encoding="utf-8")
+    # --- 수정된 부분 끝 ---
+
+    return out_path
+
+
+def build_tab7_labeling(current_tab: gr.State):
+    ''' UI 컴포넌트 관련 '''
+    with gr.Row():
+        with gr.Column(scale=1):
+            with gr.Row():
+                image_file = gr.File(
+                    label="Select image file (.jpg or .png)",
+                    file_types=["image"]
+                )
+                load_json_file = gr.File(
+                    label="Select polygon JSON file",
+                    file_types=[".json"]
+                )
+                classes_txt_file = gr.File(
+                    label="Select classes.txt",
+                    file_types=[".txt"]
+                )
+            with gr.Row():
+                load_btn = gr.Button(
+                    "Load Polygon + Image + rendering",
+                    size="lg"
+                )
+
+        with gr.Column(scale=1):
+            with gr.Accordion(
+                    "(Optional) JSON이 없는 경우 Image + YOLO TXT로 생성하기",
+                    open=True,
+                    elem_id="optional-accordion"
+            ):
+                with gr.Row():
+                    with gr.Column(scale=2):
+                        infer_txt_file = gr.File(
+                            label="Inference TXT",
+                            file_types=[".txt"]
+                        )
+                    with gr.Column(scale=1):
+                        save_name_json_from_txt = gr.Textbox(
+                            label="Save as (filename.json)",
+                            value="edited.json"
+                        )
+                        gen_btn = gr.Button("Generate JSON")
+                        gen_out = gr.JSON(visible=False)
+                        gen_file = gr.File(label="Download JSON", visible=True)
+
+    with gr.Row():
+        with gr.Column(scale=1):
+            gr.HTML("""
+            <div>
+                <h3>[단축키 & 조작 안내]</h3>
+                <ul>
+                    <li><b>Click + Drag</b> : 포인트 이동</li>
+                    <li><b>Ctrl + Click</b> : 포인트 삭제</li>
+                    <li><b>Shift + Click</b> : 포인트 추가 (포인트 추가 후 Finish Polygon 버튼 누르기)</li>
+                    <li><b>Ctrl + Z / Y</b> : Undo / Redo</li>
+                    <li><b>New Polygon / Finish Polygon 버튼</b> : 새로운 폴리곤 추가 / 종료</li>
+                </ul>
+            </div>
+            """)
+
+            # NEW polygon controls : Class ID + 버튼 영역
+            with gr.Row():
+                with gr.Column(scale=2):
+                    new_class = gr.Dropdown(
+                        choices=[],
+                        label="Class ID",
+                        value=None
+                    )
+                    # 아래 칸용 dummy dropdown (높이 맞추기용)
+                    gr.Dropdown(
+                        choices=[],
+                        label="Class ID",
+                        visible=False
+                    )
+                with gr.Column(scale=1):
+                    add_mode_btn = gr.Button("➕ New Polygon")
+                    finish_poly_btn = gr.Button("✔ Finish Polygon")
+
+        with gr.Column(scale=1):
+            js_log_box = build_log_textbox(label="JS Log", lines=13)
+
+    # save json / txt
+    gr.Markdown("### [파일 저장하기]")
+    with gr.Row():
+        save_name = gr.Textbox(
+            label="Save as (filename.json)",
+            value="edited.json"
+        )
+        export_txt_name = gr.Textbox(
+            label="Export as (filename.txt)",
+            value="edited.txt"
+        )
+    with gr.Row():
+        save_json_btn = gr.DownloadButton(
+            label="Save JSON",
+            value=None
+        )
+        export_txt_btn = gr.DownloadButton(
+            label="Export YOLO TXT",
+            value=None,  # 처음엔 없음
+            visible=True
+        )
+
+    ''' 버튼 클릭 리스너 및 ui 관련 함수 '''
+
+    load_out = gr.JSON(visible=False)
+
+    def build_class_dropdown(classes_file):
+        names, colors = load_classes_txt(classes_file)
+        choices = [
+            (f"{i:02d} — {names[i]} [{colors[i]}]", i)
+            for i in range(len(names))
+        ]
+        return gr.update(choices=choices, value=0 if choices else None)
+
+    classes_txt_file.change(
+        fn=build_class_dropdown,
+        inputs=[classes_txt_file],
+        outputs=[new_class]
+    )
+
+    load_btn.click(
+        fn=load_polygon_for_edit,
+        inputs=[load_json_file, image_file, classes_txt_file],
+        outputs=load_out
+    ).then(fn=None, inputs=load_out, outputs=None, js="(p) => window.js_editor(p)")
+
+    # 이미지+txt에서 JSON 생성 후 JS editor 호출
+    gen_btn.click(
+        fn=gen_json_return_file_and_json,
+        inputs=[image_file, infer_txt_file, classes_txt_file, save_name_json_from_txt],
+        outputs=[gen_file, gen_out]
+    ).then(
+        fn=None,
+        inputs=[gen_out],
+        outputs=None,
+        js=r"""
+                (p) => { window.js_editor(p); return null; }
+                """
+    )
+
+    def default_names_from_image(image_file):
+        """
+        image_file 기준으로
+        - json 이름 2개
+        - txt 이름 1개
+        를 한 번에 업데이트
+        """
+        if image_file is None:
+            return gr.update(), gr.update(), gr.update()
+
+        stem = Path(image_file.name).stem
+        return (
+            gr.update(value=f"{stem}.json"),  # save_name_json_from_txt
+            gr.update(value=f"{stem}.json"),  # save_name
+            gr.update(value=f"{stem}.txt"),  # export_txt_name
+        )
+
+    image_file.change(
+        fn=default_names_from_image,
+        inputs=image_file,
+        outputs=[
+            save_name_json_from_txt,
+            save_name,
+            export_txt_name
+        ]
+    )
+
+    add_mode_btn.click(fn=None, inputs=None, outputs=None, js="() => add_mode_on()")
+    finish_poly_btn.click(fn=None, inputs=new_class, outputs=None, js="(cls_value) => finish_poly(cls_value)")
+
+    save_json_btn.click(
+        fn=None, inputs=[save_name], outputs=None,
+        js="""
+        (filename) => {
+            const cur = window.get_current_json();
+            const jsonText = (typeof cur === "string")
+                ? cur
+                : JSON.stringify(cur, null, 2);
+            return window.save_json_via_filepicker(
+                filename || "edited.json",
+                jsonText
+            );
+        }
+        """
+    )
+
+    export_txt_btn.click(
+        fn=json_file_to_yolo_seg_txt,
+        inputs=[load_json_file, image_file, export_txt_name],
+        outputs=export_txt_btn
+    )
+
+    def reset_single_state(tab_name):
+        if tab_name == "single":
+            return None, None, None
+        else:
+            return gr.update(), gr.update(), gr.update()
+
+    current_tab.change(
+        fn=reset_single_state,
+        inputs=current_tab,
+        outputs=[load_out, image_file, load_json_file],
+    )

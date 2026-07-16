@@ -7,10 +7,10 @@ from ui.shared.js_assets import load_all_js
 from ui.tabs.tab1_viewer import build_tab1_viewer
 from ui.tabs.tab2_dataset import build_tab2_dataset
 from ui.tabs.tab3_train_monitor import build_tab3_train_monitor
-from ui.tabs.tab4_perf_monitor import build_tab4_perf_monitor
-from ui.tabs.tab5_main import build_tab5
-from ui.tabs.tab6_compare import build_tab6_compare
-from ui.tabs.tab7_inference import build_tab7_inference
+from ui.tabs.tab4_inference import build_tab4_inference
+from ui.tabs.tab5_compare import build_tab5_compare
+from ui.tabs.tab6_perf_monitor import build_tab6_perf_monitor
+from ui.tabs.tab7_main import build_tab7
 from core.yolo_train import YoloTrainer
 
 def create_demo():
@@ -57,16 +57,17 @@ def create_demo():
             build_tab1_viewer()
             build_tab2_dataset()
             tab3 = build_tab3_train_monitor(trainer=trainer)
-            build_tab4_perf_monitor()
-            build_tab5()
-            build_tab6_compare()
-            tab7 = build_tab7_inference()
+            tab4 = build_tab4_inference()
+            build_tab5_compare()
+            build_tab6_perf_monitor()
+            build_tab7()
+
 
         demo.load(
             fn=lambda task_name: (
                 *tab3["refresh"]["runs"](task_name),
                 *tab3["refresh"]["weights"](task_name),
-                *tab3["refresh"]["weights"](task_name),  # ← tab7도 같은 weights 사용
+                *tab3["refresh"]["weights"](task_name),  # ← tab4도 같은 weights 사용
 
             ),
             inputs=[tab3["task"]],
@@ -81,10 +82,10 @@ def create_demo():
                 tab3["weights_selector"]["map_state"],
                 tab3["weights_selector"]["path"],
 
-                # tab7 weights selector
-                tab7["weights_selector"]["dropdown"],
-                tab7["weights_selector"]["map_state"],
-                tab7["weights_selector"]["path"],
+                # tab4 weights selector
+                tab4["weights_selector"]["dropdown"],
+                tab4["weights_selector"]["map_state"],
+                tab4["weights_selector"]["path"],
             ],
         )
 

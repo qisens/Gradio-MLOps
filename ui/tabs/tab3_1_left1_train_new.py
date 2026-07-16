@@ -61,6 +61,7 @@ def build_train_new(
             monitor_lr0 = gr.Number(label="lr0", value=0.001,
                                     info="권장: 0.001 (AdamW 옵티마이저 기준)")
 
+
         with gr.Row():
             # 시스템 VRAM을 감지하여 안전한 Batch 사이즈를 자동 세팅하기 위한 신규 버튼입니다.
             btn_auto_batch = gr.Button("🔍 시스템 VRAM 스캔 및 Batch 최적화", variant="secondary")
