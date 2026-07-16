@@ -21,6 +21,8 @@ test_yolo_project/datasets
 test_yolo_project/runs
 test_yolo_project/tab3_training_info
 test_yolo_project/tab4_inference
+test_yolo_project/tab6_datasets_for_labeling
+test_yolo_project/tab7_inference
 test_yolo_project_/
 
 # =====================
