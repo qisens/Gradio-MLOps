@@ -88,11 +88,11 @@ def build_inference_tab(
                 bad_list_md = build_log_textbox(label="선택된 이미지 리스트", lines=10)
 
             # --- CSV 내보내기 UI ---
-            gr.Markdown("### 📊 추론 통계 리포트 내보내기")
-            with gr.Row():
-                btn_export_csv = gr.Button("추론 통계 CSV 다운로드", variant="secondary")
-            with gr.Row():
-                csv_download_file = gr.File(label="다운로드 파일", interactive=False)
+            # gr.Markdown("### 📊 추론 통계 리포트 내보내기")
+            # with gr.Row():
+            #     btn_export_csv = gr.Button("추론 통계 CSV 다운로드", variant="secondary")
+            # with gr.Row():
+            #     csv_download_file = gr.File(label="다운로드 파일", interactive=False)
             # ----------------------------------------
 
 
